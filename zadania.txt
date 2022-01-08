@@ -1,0 +1,71 @@
+=================================
+NORMAL MAPPING
+=================================
+
+Twoim zadaniem bêdzie zaimplementowanie normal mappingu.
+
+Teraz oswietlenie bedziemy wykonywac w przestrzeni stycznych (tangent space). W tym celu wykorzystamy dodatkowe wektory oprocz wektora normalnego, a mianowicie wektory styczne: tangent i bitangent.
+
+1. Musimy przeksztalcic wektor swiatla (L) i wektor widoku (V) do przestrzeni stycznych. Co wazne, zrobimy do w vertex shaderze. W tym celu przenies potrzebne dane dotyczace swiatla i kamery (uniformy lightDir i cameraPos) z fragment shadera do vertex shadera.
+
+2. Zadeklaruj trojwymiarowe wektory lightDirTS i viewDirTS tak, aby mozna bylo obliczyc je w vertex shaderze i przekazac do fragment shadera (analogicznie jak interpolowalismy wektory normalne czy wspolrzedne tekstur).
+Sufiks TS oznacza tangent space. Wazne jest, aby oznaczac (np. dopisujac cos do nazwy zmiennej) w jakiej przestrzeni znajduja sie uzywane wektory, tak aby poprawnie wykonywac obliczenia. Trzeba zawsze zwracac uwage na to, w jakiej przestrzeni dzialamy.
+
+3. Nie potrzebujemy juz we fragment shaderze informacji na temat pozycji fragmentu i wektora normalnego geometrii, skasuj wiec zmienne przekazujace te wektory pomiedzy shaderami (fragPos i interpNormal). Natomiast samo obliczanie fragPos w vertexShaderze zachowaj, przyda nam sie w pozniejszych obliczeniach. Zadeklaruj tylko zmienna fragPos lokalnie wewnatrz funkcji main i zmien jej nazwe na vertPos, gdyz teraz oznacza po prostu pozycje wierzcholka. Deklaracje zmiennych lightDir i cameraPos przenies z fragment do vertex shadera.
+
+4. Teraz, we fragment shaderze zamiast wektora lightDir powinnismy uzyc wektora lightDirTS (nalezy go dodatkowo znormalizowac), a jako wektor widoku V powinnismy uzyc wektora viewDirTS (rowniez nalezy go znormalizowac). Jako wektora N uzyj na razie wektora vec3(0,0,1).
+
+5. Pozostaje jeszcze wyliczyc wektory lightDirTS i viewDirTS w vertex shaderze. W tym celu wykorzystamy dodatkowe wektory vertexTangent i vertexBitangent.
+
+5.1. Przeksztalc wektory vertexNormal, vertexTangent i vertexBitangent do przestrzeni swiata (przemnoz macierz modelu przez te wektory, tak jak to robilismy wczesniej z wektorem normalnym, z uwzglednieniem zmiennej w=0) i zapisz wyniki odpowiednio w zmiennych normal, tangent i bitangent.
+
+5.2. Stworz macierz 3x3 TBN jako transpose(mat3(tangent, bitangent, normal)). Macierz transponujemy, aby szybko uzyskac jej odwrotnosc (mozemy tak zrobic przy zalozeniu, ze jest ortogonalna).
+
+5.3. Oblicz wektor viewDir jako znormalizowana roznice wektorow cameraPos i vertPos (tu jeszcze dzialamy w przestrzeni swiata).
+
+5.4. Wektory lightDirTS i viewDirTS otrzymujemy przemnazajac po prostu macierz TBN przez wektory odpowiednio lightDir i viewDir. 
+
+6. W tym momencie wynik oswietlenia powinien byc analogiczny do zwyklego oswietlenia Phonga. Pozostaje jeszcze tylko wczytac odpowiednie wektory normalne z tekstury (normal mapy). W tym celu dodaj we fragment shaderze dodatkowy sampler do czytania tekstury normalnych: normalSampler. Nastepnie wczytaj z niego wektor normalny, analogicznie jak czytamy kolor zwyklej tekstury z samplera textureSampler (rowniez uzywamy tylko kanalow rgb), i zapisz go w zmiennej N.
+Poniewaz w teksturze wartosci sa w przedziale [0,1], musimy jeszcze przeksztalcic je do przedzialu [-1,1]. W tym celu przemnoz wektor N przez 2 i odejmij 1.
+Na koniec warto jeszcze znormalizowac wektor normalny, aby uniknac bledow zwiazanych z precyzja lub kompresja tekstury.
+
+7. Nalezy jeszcze wczytac odpowiednie tekstury w kodzie C++. W tym celu zaladuj przy uzyciu funkcji Core::LoadTexture normal mapy dla tekstury "test.png". Normal mapy maja taka sama nazwe jak zwykle tekstury, tyle ze z suffiksem "_normals".
+
+8. Zmodyfikuj na koniec funkcje drawObjectTextureNM. Dodaj do niej nowy argument GLuint normalmapId, w ktorym bedziemy przekazywac id tekstury zawierajacej normal mape. Przy uzyciu funkcji Core::SetActiveTexture powiaz sampler "normalSampler" z tekstura o id normalmapId i jednostka teksturowania nr 1.
+Wywolaj rysowanie objektu test za pomocy funkcji drawObjectTextureNM.
+
+9. Narysuj asteroidy i ziemie rowniez z normal mappingiem.
+
+W pliku poprawny-normal-mapping.png znajduje sie wynik poprawnej implementacji. Zwroc uwage na poprawnosc wypuklosci (np. na scianie plus powinien byc wypukly, a minus wklesly).
+
+Co ciekawe, wektory styczne obliczane sa w programie podczas ladowania modeli. Innym rozwiazaniem byloby wyeksportowanie modeli wraz z informacja o wektorach stycznych (tak jak zawieraja juz informacje o wektorach normalnych). Jezeli jestes zainteresowany w jaki sposob obliczane sa wektory styczne, porownaj plik src/objload.h z wersja tego pliku z poprzednich cwiczen.
+
+=================================
+KRZYWE
+=================================
+
+Twoim zadaniem bêdzie zrealizowaæ ruch kamery (wraz z przyczepionym do niej statkiem) pomiêdzy punktami kontrolnymi.
+
+1. Zaprogramuj interpolacjê pozycji na (zamkniêtej) œcie¿ce, wyznaczonej przez punkty kontrolne:
+- Najwygodniej bêdzie pisaæ kod w funkcji createCameraMatrix() (gdzie interpolacja po œcie¿ce zostanie od razu u¿yta do ustalenia ruchu kamery)
+- Zbiór punktów kontrolnych znajduje siê w tablicy cameraKeyPoints. Œcie¿ka powinna zaczynaæ i koñczyæ siê w punkcie cameraKeyPoints[0] (po punkcie kontrolnymi o indeksie n-1 nastêpuje punkt o indeksie 0 - i tak w kó³ko).
+- U¿yj zmiennej time do kontrolowania ruchu wzd³u¿ œcie¿ki. W czasie time=NUM_CAMERA_POINTS, ruch po œcie¿ce powinien wróciæ do punktu pocz¹tkowego (oznacza to po prostu, ¿e ruch po œcie¿ce bêdzie trwa³ tyle sekund, ile jest punktów kontrolnych, oraz ¿e ruch pomiêdzy ka¿dymi dwoma punktami bêdzie trwa³ jedn¹ sekundê)
+- U¿yj funkcji glm::catmullRom(). Przyjmuje ona cztery argumenty typu glm::vec3 (v1, v2, v3, v4) i jeden argument typu float (s). Zwraca ona glm::vec3, w którym znajduje siê zinterpolowana pozycja miêdzy punktami v2 i v3 (parametr s wybiera punkt na œcie¿ce; dla s=0 zwracane jest v2, dla s=1 zwracane jest v3, dla 0<s<1 zwracana jest zinterpolowana pozycja na œcie¿ce). Punkty v1 i v4 s¹ dodatkowymi punktami kontroluj¹cymi krzywiznê œcie¿ki. Dla krzywych Catmulla-Roma, nale¿y jako v1,v2,v3,v4 podaæ po prostu cztery kolejne punkty ze zbioru punktów kontrolnych
+- Ze zmiennej time musisz uzyskaæ dwie informacje: która sekunda ruchu obecnie trwa, oraz jaki u³amek tej sekundy up³yn¹³ - czyli po prostu wy³uskaæ ze zmiennej jej czêœæ ca³kowit¹, oraz u³amkow¹. Mo¿esz na przyk³ad u¿yæ funkcji floorf() z biblioteki matematycznej C++.
+- Czêœæ ca³kowita pozwoli ustaliæ, który punkty kontrolne w danej chwili nale¿y przes³aæ do funkcji catmullRom(). Na przyk³ad w sekundzie pierwszej (tzn. tej, dla której czêœæ ca³kowita zmiennej time wynosi zero), jako v0,v1,v2,v3 nale¿y wys³aæ punkty o indeksach NUM_CAMERA_POINTS-1,0,1,2.
+
+2. Spraw, aby kamera porusza³a siê po œcie¿ce.
+- U¿yj pozycji uzyskanej w poprzednim zadaniu jako pozycji kamery.
+
+3. Kamera porusza siê po œcie¿ce, ale nie patrzy w kierunku ruchu.
+- Potrzebny jest tzw. wektor styczny do krzywej (któr¹ jest nasza œcie¿ka). Dla wiêkszoœci krzywych u¿ywanych w grafice mo¿na go obliczyæ analitycznie, ale biblioteka glm nie daje takiej mo¿liwoœci. U¿yjemy wiêc numerycznego przybli¿enia wektora stycznego.
+- Wektor styczny do krzywej parametryzowanej zmienn¹ s, to po prostu wartoœæ pochodnej funkcji wektorowej wzglêdem zmiennej s. Najprostsza numeryczna metoda przybli¿ania wartoœci pochodnej funkcji to metoda ró¿nic skoñczonych: Aby oszacowaæ prêdkoœæ zmiany wartoœci funkcji w punkcie s=x, znajdujemy jej wartoœæ w nieco dalszym punkcie s=x+Epsilon oraz wartoœæ w nieco bli¿szym punkcie s=x-Epsilon, i dzielimy ró¿nicê tych dwóch wartoœci przez 2*Epsilon (je¿eli zastanawiasz siê dlaczego to dzia³a, przypomnij sobie definicjê pochodnej funkcji). W naszym przypadku tylko kierunek wektora stycznego ma znaczenie (a nie jego d³ugoœæ), wiêc mo¿emy pomin¹æ dzielenie. Ostatecznie mo¿emy wiêc napisaæ:
+wektorStyczny = glm::normalize(glm::catmullRom(..., s+0.001) - glm::catmullRom(..., s-0.001));
+(S¹ tu pewne niuanse, np. sta³a 0.001 jest dobrana eksperymentalnie; ponadto mo¿na siê zastanawiaæ, co w przypadku gdy s+0.001 przekroczy 1, albo s-0.001 spadnie poni¿ej 0. W naszym przypadku problemy nie bêd¹ widoczne).
+- U¿yj wektora stycznego jako nowego kierunku patrzenia kamery (cameraDir).
+
+4. Popraw orientacjê statku.
+- Orientacja statku jest w kodzie ustalana przy u¿yciu zmiennej cameraAngle. Najproœciej bêdzie wy³uskaæ k¹t kamery (którego teraz ju¿ w definicji samej kamery nie potrzebujemy, bo ustalamy kierunek kamery jako wektor styczny do œcie¿ki) z aktualnego kierunku kamery:
+cameraAngle = atan2f(cameraDir.z, cameraDir.x);
+
+5. Stwórz w³asn¹, ciekawsz¹ œcie¿kê kamery (np. lawirowanie miêdzy asteroidami).

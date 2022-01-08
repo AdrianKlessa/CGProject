@@ -1,0 +1,68 @@
+=================================
+NORMAL MAPPING
+=================================
+
+Your exercise is to implement normal mapping.
+
+Teraz oswietlenie bedziemy wykonywac w przestrzeni stycznych (tangent space). W tym celu wykorzystamy dodatkowe wektory oprocz wektora normalnego, a mianowicie wektory styczne: tangent i bitangent.
+
+1. Musimy przeksztalcic wektor swiatla (L) i wektor widoku (V) do przestrzeni stycznych. Co wazne, zrobimy do w vertex shaderze. W tym celu przenies potrzebne dane dotyczace swiatla i kamery (uniformy lightDir i cameraPos) z fragment shadera do vertex shadera.
+
+2. Zadeklaruj trojwymiarowe wektory lightDirTS i viewDirTS tak, aby mozna bylo obliczyc je w vertex shaderze i przekazac do fragment shadera (analogicznie jak interpolowalismy wektory normalne czy wspolrzedne tekstur).
+Sufiks TS oznacza tangent space. Wazne jest, aby oznaczac (np. dopisujac cos do nazwy zmiennej) w jakiej przestrzeni znajduja sie uzywane wektory, tak aby poprawnie wykonywac obliczenia. Trzeba zawsze zwracac uwage na to, w jakiej przestrzeni dzialamy.
+
+3. Nie potrzebujemy juz we fragment shaderze informacji na temat pozycji fragmentu i wektora normalnego geometrii, skasuj wiec zmienne przekazujace te wektory pomiedzy shaderami (fragPos i interpNormal). Natomiast samo obliczanie fragPos w vertexShaderze zachowaj, przyda nam sie w pozniejszych obliczeniach. Zadeklaruj tylko zmienna fragPos lokalnie wewnatrz funkcji main i zmien jej nazwe na vertPos, gdyz teraz oznacza po prostu pozycje wierzcholka.
+
+4. Teraz, we fragment shaderze zamiast wektora lightDir powinnismy uzyc wektora lightDirTS (nalezy go dodatkowo znormalizowac), a jako wektor widoku V powinnismy uzyc wektora viewDirTS (rowniez nalezy go znormalizowac). Jako wektora N uzyj na razie wektora vec3(0,0,1).
+
+5. Pozostaje jeszcze wyliczyc wektory lightDirTS i viewDirTS w vertex shaderze. W tym celu wykorzystamy dodatkowe wektory vertexTangent i vertexBitangent.
+
+5.1. Przeksztalc wektory vertexNormal, vertexTangent i vertexBitangent do przestrzeni swiata (przemnoz macierz modelu przez te wektory, tak jak to robilismy wczesniej z wektorem normalnym, z uwzglednieniem zmiennej w=0) i zapisz wyniki odpowiednio w zmiennych normal, tangent i bitangent.
+
+5.2. Stworz macierz 3x3 TBN jako transpose(mat3(tangent, bitangent, normal)). Macierz transponujemy, aby szybko uzyskac jej odwrotnosc (mozemy tak zrobic przy zalozeniu, ze jest ortogonalna).
+
+5.3. Oblicz wektor viewDir jako znormalizowana roznice wektorow cameraPos i vertPos (tu jeszcze dzialamy w przestrzeni swiata).
+
+5.4. Wektory lightDirTS i viewDirTS otrzymujemy przemnazajac po prostu macierz TBN przez wektory odpowiednio lightDir i viewDir. 
+
+6. W tym momencie wynik oswietlenia powinien byc analogiczny do zwyklego oswietlenia Phonga. Pozostaje jeszcze tylko wczytac odpowiednie wektory normalne z tekstury (normal mapy). W tym celu dodaj we fragment shaderze dodatkowy sampler do czytania tekstury normalnych: normalSampler. Nastepnie wczytaj z niego wektor normalny, analogicznie jak czytamy kolor zwyklej tekstury z samplera textureSampler (rowniez uzywamy tylko kanalow rgb), i zapisz go w zmiennej N.
+Poniewaz w teksturze wartosci sa w przedziale [0,1], musimy jeszcze przeksztalcic je do przedzialu [-1,1]. W tym celu przemnoz wektor N przez 2 i odejmij 1.
+Na koniec warto jeszcze znormalizowac wektor normalny, aby uniknac bledow zwiazanych z precyzja lub kompresja tekstury.
+
+7. Nalezy jeszcze wczytac odpowiednie tekstury w kodzie C++. W tym celu zaladuj przy uzyciu funkcji Core::LoadTexture normal mapy dla wszystkich modeli. Normal mapy maja taka sama nazwe jak zwykle tekstury, tyle ze z suffiksem "_normals".
+
+8. Zmodyfikuj na koniec funkcje drawObjectTexture. Dodaj do niej nowy argument GLuint normalmapId, w ktorym bedziemy przekazywac id tekstury zawierajacej normal mape. Przy uzyciu funkcji Core::SetActiveTexture powiaz sampler "normalSampler" z tekstura o id normalmapId i jednostka teksturowania nr 1.
+Dodaj odpowiednie id tekstur w miejscach wywolania funkcji drawObjectTexture.
+
+W pliku poprawny-normal-mapping.png znajduje sie wynik poprawnej implementacji. Zwroc uwage na poprawnosc wypuklosci (np. na scianie plus powinien byc wypukly, a minus wklesly).
+
+Co ciekawe, wektory styczne obliczane sa w programie podczas ladowania modeli. Innym rozwiazaniem byloby wyeksportowanie modeli wraz z informacja o wektorach stycznych (tak jak zawieraja juz informacje o wektorach normalnych). Jezeli jestes zainteresowany w jaki sposob obliczane sa wektory styczne, porownaj plik src/objload.h z wersja tego pliku z poprzednich cwiczen.
+
+=================================
+CURVES
+=================================
+
+Your exercise is to create a moving camera by defining a curved path.
+
+1. Interpolate the position on a closed path, given by a number of control points:
+- It will be easiest to write these instructions in the function createCameraMatrix() where you can use the positional information to update the camera information
+- The camera control points can be found in the array cameraKeyPoints. The path should start and end in the element cameraKeyPoints[0].
+- Use the variable "time" to represent the variable t used in keyframe interpolations (see lecture notes if not clear). At time=NUM_CAMERA_POINTS, the camera movement should return to the start (this means that the whole animation will take as many seconds as there are control points).
+- Use the function glm::catmullRom(). It accepts four arguments glm::vec3 (v1, v2, v3, v4) and one argument of type float (s). The function returns glm::vec3, where the interpolated position between v2 and v3 is stored (parameter s selects the interpolated distance between v2 and v3, this represents the animation between two control points - revisit the lecture notes about catmull-rom splines). Points v1 and v4 are the additional control points of the path which we need to compute the cubic curve. To generate a Catmulla-Rom curve, simply provide points v1,v2,v3,v4 to interpolate positions between v2 and v3.
+- Two kinds of information are provided by the variable time: between which control points the camera is currently moving which is indicated by the integer part of time, and what where between two control points the camera exactly is (given by the fractional part of time). You can use the function floorf() from the math library of C++ to get the integer part of the varibale time.
+- At animation start the control points v0,v1,v2,v3 should be set to NUM_CAMERA_POINTS-1,0,1,2, because we are interpolating always between v1 and v2, in this case between 0 and 1.
+
+2. Check if the camera moves along the path.
+- Use the position calculated in the previous exercise to determine the camera position.
+
+3. The camera moves along the path but is not oriented such that it looks in the direction of movement.
+- we have to calculate the tangents for all the control points. Often there analyical solutions for the tangent vectors, for our case we will use a numerical approximation.
+- The simplest numerical method to approximate the tangent (in other words the derivate of the curve) is the finite difference method: The velocity at a position s=x, we can compute using the position s=x+Epsilon and the previous position s=x-Epsilon. The difference rof these two values is divided by 2*Epsilon (read up on the finite difference method if in doubt). In out case only the direction of the tangent is important so we can ignore the division. Finally, we can then use the following formula:
+tangent = glm::normalize(glm::catmullRom(..., s+0.001) - glm::catmullRom(..., s-0.001));
+- Use the tangent vector as the new camera direction.
+
+4. Fix the spaceship orientation.
+- The orientation of the camera angle is given by the variable "cameraAngle". Since we calculated the tangents we can use them to calculate the correct spaceship orientation:
+cameraAngle = atan2f("tangent.z", "tangent.x");
+
+5. Create your own, better path between the asteroids (e.g. avoiding the asteroids using a "snake" path).

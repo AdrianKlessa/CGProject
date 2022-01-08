@@ -33,6 +33,13 @@
     <None Include="shaders\shader_water.frag" />
     <None Include="shaders\shader_water.vert" />
   </ItemGroup>
+  <ItemGroup>
+    <Object Include="models\plane.obj" />
+    <Object Include="models\spaceship.obj" />
+    <Object Include="models\spaceship0.obj" />
+    <Object Include="models\sphere.obj" />
+    <Object Include="models\submarine.obj" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1B448102-E76C-4347-BDC7-40D02A567DB6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

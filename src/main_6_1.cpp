@@ -272,7 +272,7 @@ void renderScene()
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 	
 	// Macierz statku "przyczepia" go do kamery. Warto przeanalizowac te linijke i zrozumiec jak to dziala.
-	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 0.6f + glm::vec3(0,-0.25f,0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0,1,0)) * glm::scale(glm::vec3(0.25f));
+	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 0.6f + glm::vec3(0,-0.25f,0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0,1,0)) * glm::scale(glm::vec3(0.07f))*glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
 	drawObjectTexture(&shipModel, shipModelMatrix, textureShip,normalShip);
 
 	
@@ -314,16 +314,16 @@ void init()
 	programTexture = shaderLoader.CreateProgram("shaders/shader_tex.vert", "shaders/shader_tex.frag");
 	programWater = shaderLoader.CreateProgram("shaders/shader_water.vert", "shaders/shader_water.frag");
 
-	shipModel = obj::loadModelFromFile("models/spaceship.obj");
+	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
 	planeModel = obj::loadModelFromFile("models/plane.obj");
 
-	textureShip = Core::LoadTexture("textures/spaceship.png");
+	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
 	textureAsteroid = Core::LoadTexture("textures/asteroid.png");
 	textureTest = Core::LoadTexture("textures/test.png");
 
-	normalShip = Core::LoadTexture("textures/spaceship_normals.png");
+	normalShip = Core::LoadTexture("textures/Submarine_normals.png");
 	normalEarth = Core::LoadTexture("textures/earth2_normals.png");
 	normalAsteroid = Core::LoadTexture("textures/asteroid_normals.png");
 	normalTest = Core::LoadTexture("textures/test_normals.png");

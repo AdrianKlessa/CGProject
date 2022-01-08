@@ -16,6 +16,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{e1f2c2bf-3ef8-40e7-ada2-7c78abadf64c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="models">
+      <UniqueIdentifier>{9c5ec823-1f87-433c-8396-e553b31404d9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Render_Utils.cpp">
@@ -73,5 +76,22 @@
     <None Include="shaders\shader_water.vert">
       <Filter>Shaders</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="models\plane.obj">
+      <Filter>models</Filter>
+    </Object>
+    <Object Include="models\spaceship.obj">
+      <Filter>models</Filter>
+    </Object>
+    <Object Include="models\spaceship0.obj">
+      <Filter>models</Filter>
+    </Object>
+    <Object Include="models\sphere.obj">
+      <Filter>models</Filter>
+    </Object>
+    <Object Include="models\submarine.obj">
+      <Filter>models</Filter>
+    </Object>
   </ItemGroup>
 </Project>

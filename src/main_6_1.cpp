@@ -153,6 +153,9 @@ GLuint refractionDepthTexture;
 GLuint skyboxVAO;
 GLuint skyboxVBO;
 GLuint skyboxTexture;
+
+GLuint defaultVAO;
+GLuint defaultVBO;
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
@@ -285,12 +288,18 @@ void drawObjectTexture(obj::Model * model, glm::mat4 modelMatrix, GLuint texture
 
 void drawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
 	glDepthFunc(GL_LEQUAL);
+	glDepthRange(1, 1);
+	glEnable(GL_DEPTH_CLAMP);
 	glUseProgram(programSkybox);
-	glBindVertexArray(skyboxVAO);
+
+	//glBindVertexArray(skyboxVAO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, skyboxVertices);
+	glEnableVertexAttribArray(0);
 	glm::mat4 view = glm::mat4(glm::mat3(viewMatrix));
-	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "projection"), 1, GL_FALSE, (float*)&view);
-	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "view"), 1, GL_FALSE, (float*)&projectionMatrix);
-	// ... set view and projection matrix
+	//glm::mat4 view = viewMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "projection"), 1, GL_FALSE, (float*)&projectionMatrix);
+	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "view"), 1, GL_FALSE, (float*)&view);
+	
 	
 	glUniform1i(glGetUniformLocation(programSkybox, "skybox"), 0);
 	glActiveTexture(GL_TEXTURE0);
@@ -298,6 +307,8 @@ void drawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 	
 	glUseProgram(0);
+	glDisable(GL_DEPTH_CLAMP);
+	glDepthRange(0, 1);
 	glDepthFunc(GL_LESS);
 }
 
@@ -318,7 +329,8 @@ void drawObjectTextureNM(obj::Model * model, glm::mat4 modelMatrix, GLuint textu
 void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
 	GLuint program = programWater;
 	glUseProgram(program);
-
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	Core::SetActiveTexture(reflectionTexture, "reflectionTexture", program, 0);
 	Core::SetActiveTexture(refractionTexture, "refractionTexture", program, 0);
 	/*
@@ -344,7 +356,7 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 		glUniformMatrix4fv(glGetUniformLocation(programWater, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
-	
+	glDisable(GL_BLEND);
 
 
 	/*
@@ -429,6 +441,8 @@ void initialiseRefractionFrameBuffer() {
 }
 
 void loadSkybox() {
+
+	/*
 	glUseProgram(programSkybox);
 	glGenVertexArrays(1, &skyboxVAO);
 	glBindVertexArray(skyboxVAO);
@@ -437,7 +451,9 @@ void loadSkybox() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	
+	*/
+
+
 	glGenTextures(1, &skyboxTexture);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
 	
@@ -465,7 +481,7 @@ void loadSkybox() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	glBindVertexArray(0);
+	//glBindVertexArray(defaultVAO);
 }
 
 void renderScene()
@@ -497,7 +513,7 @@ void renderScene()
 	
 	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0,-0.25f,0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0,1,0)) * glm::scale(glm::vec3(0.07f))*glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
 	drawObjectTexture(&shipModel, shipModelMatrix, textureShip,normalShip);
-	//drawSkybox(cameraMatrix, perspectiveMatrix);
+	
 	
 
 
@@ -510,7 +526,7 @@ void renderScene()
 	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth,normalEarth);
 	
 	//drawObjectTexture(&planeModel, glm::translate(glm::vec3(-3, 0, 0))*glm::scale(glm::vec3(1, 0.5, 0.5)), textureTest,normalTest);
-	
+	drawSkybox(cameraMatrix, perspectiveMatrix);
 	unbindCurrentFrameBuffer();
 	cameraPos.y += distance;
 	cameraDir.y = pitch;
@@ -521,7 +537,7 @@ void renderScene()
 
 	shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(0.07f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
 	drawObjectTexture(&shipModel, shipModelMatrix, textureShip, normalShip);
-	//drawSkybox(cameraMatrix, perspectiveMatrix);
+	
 
 
 
@@ -534,7 +550,7 @@ void renderScene()
 	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
 
 	//drawObjectTexture(&planeModel, glm::translate(glm::vec3(-3, 0, 0))*glm::scale(glm::vec3(1, 0.5, 0.5)), textureTest,normalTest);
-
+	drawSkybox(cameraMatrix, perspectiveMatrix);
 	unbindCurrentFrameBuffer();
 	//------------Final pass-------------
 	setClipPlane(programTexture,glm::vec4(0, -1, 0, 10000));
@@ -550,8 +566,9 @@ void renderScene()
 		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
 	}
 	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
-	//drawSkybox(cameraMatrix, perspectiveMatrix);
+	
 	//glBindVertexArray(waterVAO);
+	drawSkybox(cameraMatrix, perspectiveMatrix);
 	drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
 	
 
@@ -564,8 +581,12 @@ void init()
 {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CLIP_DISTANCE0);
-
-
+	/*
+	glGenVertexArrays(1, &defaultVAO);
+	glBindVertexArray(defaultVAO);
+	glGenBuffers(1, &defaultVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, defaultVBO);
+	*/
 
 	
 	waterTile myWater = waterTile(0, 0, 1);
@@ -594,7 +615,7 @@ void init()
 	normalEarth = Core::LoadTexture("textures/earth2_normals.png");
 	normalAsteroid = Core::LoadTexture("textures/asteroid_normals.png");
 	normalTest = Core::LoadTexture("textures/test_normals.png");
-	//loadSkybox();
+	loadSkybox();
 	/*
 	
 	glUseProgram(programWater);

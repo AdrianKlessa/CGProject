@@ -10,7 +10,7 @@ uniform mat4 modelViewProjectionMatrix;
 uniform mat4 modelMatrix;
 uniform vec3 lightDir;
 uniform vec3 cameraPos;	
-
+uniform vec4 plane;
 
 
 out vec2 interpTexCoord;
@@ -27,6 +27,9 @@ void main()
 
 	gl_Position = modelViewProjectionMatrix * vec4(vertexPosition, 1.0);
 	vertPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz;
+
+	vec4 worldPosition = modelMatrix*vec4(vertexPosition,1.0);
+	gl_ClipDistance[0]=dot(worldPosition,plane);
 
 	vec3 normal=(modelMatrix*vec4(vertexNormal,0.0f)).xyz; //Not sure if correct order of multiplication, check to make sure
 	vec3 tangent=(modelMatrix*vec4(vertexTangent,0.0f)).xyz;

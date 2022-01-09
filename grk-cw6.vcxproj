@@ -20,25 +20,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Camera.h" />
+    <ClInclude Include="src\objload.h" />
     <ClInclude Include="src\picopng.h" />
     <ClInclude Include="src\Render_Utils.h" />
     <ClInclude Include="src\Shader_Loader.h" />
+    <ClInclude Include="src\stb_image.h" />
     <ClInclude Include="src\Texture.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader_color.frag" />
     <None Include="shaders\shader_color.vert" />
+    <None Include="shaders\shader_skybox.frag" />
+    <None Include="shaders\shader_skybox.vert" />
     <None Include="shaders\shader_tex.frag" />
     <None Include="shaders\shader_tex.vert" />
     <None Include="shaders\shader_water.frag" />
     <None Include="shaders\shader_water.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="models\plane.obj" />
-    <Object Include="models\spaceship.obj" />
-    <Object Include="models\spaceship0.obj" />
-    <Object Include="models\sphere.obj" />
-    <Object Include="models\submarine.obj" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1B448102-E76C-4347-BDC7-40D02A567DB6}</ProjectGuid>

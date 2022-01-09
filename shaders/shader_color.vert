@@ -7,6 +7,9 @@ layout(location = 2) in vec3 vertexNormal;
 uniform mat4 modelViewProjectionMatrix;
 uniform mat4 modelMatrix;
 
+
+const vec4 plane = vec4(0,-1,0,15);
+
 out vec3 interpNormal;
 out vec3 fragPos;
 

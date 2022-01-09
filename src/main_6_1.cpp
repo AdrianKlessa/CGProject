@@ -10,6 +10,10 @@
 #include "Camera.h"
 #include "Texture.h"
 #include <list>
+#include <vector>
+#include <string>
+#define STB_IMAGE_IMPLEMENTATION    
+#include "stb_image.h"
 
 class waterTile {
 private:
@@ -38,11 +42,58 @@ public:
 
 };
 
+float skyboxVertices[] = {
+	// positions          
+	-1.0f,  1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+
+	-1.0f, -1.0f,  1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f, -1.0f,
+	-1.0f,  1.0f,  1.0f,
+	-1.0f, -1.0f,  1.0f,
+
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+
+	-1.0f, -1.0f,  1.0f,
+	-1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f, -1.0f,  1.0f,
+	-1.0f, -1.0f,  1.0f,
+
+	-1.0f,  1.0f, -1.0f,
+	 1.0f,  1.0f, -1.0f,
+	 1.0f,  1.0f,  1.0f,
+	 1.0f,  1.0f,  1.0f,
+	-1.0f,  1.0f,  1.0f,
+	-1.0f,  1.0f, -1.0f,
+
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f, -1.0f,
+	 1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f,  1.0f,
+	 1.0f, -1.0f,  1.0f
+};
+
+
+std::vector<std::string> cubeFaces = {"textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png"};
 
 GLuint programColor;
 GLuint programTexture;
 GLuint programWater;
-
+GLuint programSkybox;
 Core::Shader_Loader shaderLoader;
 
 float appLoadingTime;
@@ -58,6 +109,8 @@ glm::vec3 cameraDir;
 glm::mat4 cameraMatrix, perspectiveMatrix;
 
 glm::vec3 lightDir = glm::normalize(glm::vec3(1.0f, -1.0f, -1.0f));
+
+glm::vec4 clippingPlane = glm::vec4(0, -1, 0, 15);
 
 GLuint textureTest;
 GLuint textureEarth;
@@ -83,8 +136,23 @@ glm::vec3 asteroidPositions[NUM_ASTEROIDS];
 static const int NUM_CAMERA_POINTS = 10;
 glm::vec3 cameraKeyPoints[NUM_CAMERA_POINTS];
 
+int REFLECTION_WIDTH = 320;
+int REFLECTION_HEIGHT = 180;
+
+int REFRACTION_WIDTH = 1280;
+int REFRACTION_HEIGHT = 720;
+
+GLuint reflectionFrameBuffer;
+GLuint reflectionTexture;
+GLuint reflectionDepthBuffer;
 
 
+GLuint refractionFrameBuffer;
+GLuint refractionTexture;
+GLuint refractionDepthTexture;
+GLuint skyboxVAO;
+GLuint skyboxVBO;
+GLuint skyboxTexture;
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
@@ -101,6 +169,7 @@ void keyboard(unsigned char key, int x, int y)
 	case 'q': cameraPos -= glm::vec3(0, 1, 0) * moveSpeed; break;
 	}
 }
+
 
 glm::mat4 createCameraMatrix()
 {	/*
@@ -145,6 +214,18 @@ glm::mat4 createCameraMatrix()
 
 }
 
+void setClipPlane(GLuint program, glm::vec4 clipping_plane) {
+	glUniform4f(glGetUniformLocation(program, "plane"), clipping_plane.x,clipping_plane.y,clipping_plane.z,clipping_plane.w);
+}
+
+void cleanBuffers() {
+	glDeleteFramebuffers(1,&reflectionFrameBuffer);
+	glDeleteFramebuffers(1,&refractionFrameBuffer);
+	glDeleteTextures(1,&reflectionTexture);
+	glDeleteTextures(1, &refractionTexture);
+	glDeleteTextures(1, &refractionDepthTexture);
+}
+
 void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 {
 	glUniform3f(glGetUniformLocation(program, "lightDir"), lightDir.x, lightDir.y, lightDir.z);
@@ -153,6 +234,7 @@ void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 	glm::mat4 transformation = perspectiveMatrix * cameraMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewProjectionMatrix"), 1, GL_FALSE, (float*)&transformation);
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
+	
 }
 
 void setUpUniformsWater(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
@@ -166,6 +248,10 @@ void setUpUniformsWater(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
 //Projection matrix
 }
 
+void unbindCurrentFrameBuffer() {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, 600, 600);
+}
 
 
 
@@ -197,6 +283,24 @@ void drawObjectTexture(obj::Model * model, glm::mat4 modelMatrix, GLuint texture
 	glUseProgram(0);
 }
 
+void drawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
+	glDepthFunc(GL_LEQUAL);
+	glUseProgram(programSkybox);
+	glBindVertexArray(skyboxVAO);
+	glm::mat4 view = glm::mat4(glm::mat3(viewMatrix));
+	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "projection"), 1, GL_FALSE, (float*)&view);
+	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "view"), 1, GL_FALSE, (float*)&projectionMatrix);
+	// ... set view and projection matrix
+	
+	glUniform1i(glGetUniformLocation(programSkybox, "skybox"), 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	
+	glUseProgram(0);
+	glDepthFunc(GL_LESS);
+}
+
 void drawObjectTextureNM(obj::Model * model, glm::mat4 modelMatrix, GLuint textureId)
 {
 	GLuint program = programTexture;
@@ -214,11 +318,25 @@ void drawObjectTextureNM(obj::Model * model, glm::mat4 modelMatrix, GLuint textu
 void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
 	GLuint program = programWater;
 	glUseProgram(program);
+
+	Core::SetActiveTexture(reflectionTexture, "reflectionTexture", program, 0);
+	Core::SetActiveTexture(refractionTexture, "refractionTexture", program, 0);
+	/*
+	glUniform1i(glGetUniformLocation(programWater, "reflectionTexture"), 0);
+	glUniform1i(glGetUniformLocation(programWater, "refractionTexture"), 1);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, reflectionTexture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, refractionTexture);
+	*/
+	
+	
 	setUpUniformsWater(cameraMatrix, perspectiveMatrix);
 
 	float vertices[] = { -1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1 };
-	glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, vertices);
-	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, vertices);
+	glEnableVertexAttribArray(2);
 
 	for (auto& tile : water) {
 		glm::mat4 modelMatrix = glm::translate(glm::mat4(), glm::vec3(tile.getX(), tile.getHeight(), tile.getZ()));	
@@ -252,29 +370,134 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	*/
 	glUseProgram(0);
 }
+void bindFrameBuffer(int frameBuffer, int width, int height) {
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+	glViewport(0, 0, width, height);
+}
+
+GLuint createFrameBuffer() {
+	GLuint frameBuffer;
+	glGenFramebuffers(1, &frameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	return frameBuffer;
+}
+
+GLuint createTextureAttachment(int width, int height) {
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+	return texture;
+}
+
+GLuint createDepthTextureAttachment(int width, int height) {
+	GLuint texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void*)0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture, 0);
+	return texture;
+}
+
+GLuint createDepthBufferAttachment(int width, int height) {
+	GLuint depthBuffer;
+	glGenRenderbuffers(1, &depthBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
+	return depthBuffer;
+}
+
+void initialiseReflectionFrameBuffer() {
+	reflectionFrameBuffer = createFrameBuffer();
+	reflectionTexture = createTextureAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
+	reflectionDepthBuffer = createDepthBufferAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
+	unbindCurrentFrameBuffer();
+}
+void initialiseRefractionFrameBuffer() {
+	refractionFrameBuffer = createFrameBuffer();
+	refractionTexture = createTextureAttachment(REFRACTION_WIDTH, REFRACTION_HEIGHT);
+	refractionDepthTexture = createDepthBufferAttachment(REFRACTION_WIDTH, REFRACTION_HEIGHT);
+	unbindCurrentFrameBuffer();
+}
+
+void loadSkybox() {
+	glUseProgram(programSkybox);
+	glGenVertexArrays(1, &skyboxVAO);
+	glBindVertexArray(skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	
+	glGenTextures(1, &skyboxTexture);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+	
+	int width, height, nrChannels;
+	unsigned char* data;
+	for (unsigned int i = 0; i < cubeFaces.size(); i++)
+	{
+		data = stbi_load(cubeFaces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+			);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap tex failed to load at path: " << cubeFaces[i] << std::endl;
+			stbi_image_free(data);
+		}
+
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glBindVertexArray(0);
+}
 
 void renderScene()
 {
-	// opcjonalny ruch swiatla do testow
+	
 	bool animateLight = false;
 	if (animateLight) {
 		float lightAngle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0f) * 3.14 / 8;
 		lightDir = glm::normalize(glm::vec3(sin(lightAngle), -1.0f, cos(lightAngle)));
 	}
 
-	// Aktualizacja macierzy widoku i rzutowania. Macierze sa przechowywane w zmiennych globalnych, bo uzywa ich funkcja drawObject.
-	// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
-	//  Jest to mozliwe dzieki temu, ze macierze widoku i rzutowania sa takie same dla wszystkich obiektow!)
+	
 	cameraMatrix = createCameraMatrix();
 	perspectiveMatrix = Core::createPerspectiveMatrix(0.1f, 100.f, frustumScale);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 	
-	// Macierz statku "przyczepia" go do kamery. Warto przeanalizowac te linijke i zrozumiec jak to dziala.
-	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 0.6f + glm::vec3(0,-0.25f,0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0,1,0)) * glm::scale(glm::vec3(0.07f))*glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
-	drawObjectTexture(&shipModel, shipModelMatrix, textureShip,normalShip);
+	
+	//--------Reflection pass----------
+	float distance = 2 * cameraPos.y;
+	cameraPos.y -= distance;
+	float pitch = cameraDir.y;
+	cameraDir.y = -pitch;
 
+	setClipPlane(programTexture, glm::vec4(0, 1, 0, 0));
+	bindFrameBuffer(reflectionFrameBuffer,REFLECTION_WIDTH,REFLECTION_HEIGHT);
+	
+	
+	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0,-0.25f,0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0,1,0)) * glm::scale(glm::vec3(0.07f))*glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
+	drawObjectTexture(&shipModel, shipModelMatrix, textureShip,normalShip);
+	//drawSkybox(cameraMatrix, perspectiveMatrix);
 	
 
 
@@ -282,12 +505,52 @@ void renderScene()
 	
 	for (int i = 0; i < NUM_ASTEROIDS; i++)
 	{
-		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.2f)), textureAsteroid,normalAsteroid);
+		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid,normalAsteroid);
 	}
 	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth,normalEarth);
-
-	drawObjectTexture(&planeModel, glm::translate(glm::vec3(-3, 0, 0))*glm::scale(glm::vec3(1, 0.5, 0.5)), textureTest,normalTest);
 	
+	//drawObjectTexture(&planeModel, glm::translate(glm::vec3(-3, 0, 0))*glm::scale(glm::vec3(1, 0.5, 0.5)), textureTest,normalTest);
+	
+	unbindCurrentFrameBuffer();
+	cameraPos.y += distance;
+	cameraDir.y = pitch;
+	//-----------Refraction pass-------------
+	setClipPlane(programTexture, glm::vec4(0, -1, 0, 0));
+	bindFrameBuffer(refractionFrameBuffer, REFLECTION_WIDTH, REFLECTION_HEIGHT);
+
+
+	shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(0.07f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
+	drawObjectTexture(&shipModel, shipModelMatrix, textureShip, normalShip);
+	//drawSkybox(cameraMatrix, perspectiveMatrix);
+
+
+
+
+
+	for (int i = 0; i < NUM_ASTEROIDS; i++)
+	{
+		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
+	}
+	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
+
+	//drawObjectTexture(&planeModel, glm::translate(glm::vec3(-3, 0, 0))*glm::scale(glm::vec3(1, 0.5, 0.5)), textureTest,normalTest);
+
+	unbindCurrentFrameBuffer();
+	//------------Final pass-------------
+	setClipPlane(programTexture,glm::vec4(0, -1, 0, 10000));
+	drawObjectTexture(&shipModel, shipModelMatrix, textureShip,normalShip);
+
+
+
+
+
+
+	for (int i = 0; i < NUM_ASTEROIDS; i++)
+	{
+		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
+	}
+	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
+	//drawSkybox(cameraMatrix, perspectiveMatrix);
 	//glBindVertexArray(waterVAO);
 	drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
 	
@@ -300,7 +563,11 @@ void renderScene()
 void init()
 {
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CLIP_DISTANCE0);
 
+
+
+	
 	waterTile myWater = waterTile(0, 0, 1);
 	waterTiles.push_back(myWater);
 	/*
@@ -313,10 +580,10 @@ void init()
 	programColor = shaderLoader.CreateProgram("shaders/shader_color.vert", "shaders/shader_color.frag");
 	programTexture = shaderLoader.CreateProgram("shaders/shader_tex.vert", "shaders/shader_tex.frag");
 	programWater = shaderLoader.CreateProgram("shaders/shader_water.vert", "shaders/shader_water.frag");
-
+	programSkybox = shaderLoader.CreateProgram("shaders/shader_skybox.vert", "shaders/shader_skybox.frag");
 	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
-	planeModel = obj::loadModelFromFile("models/plane.obj");
+	//planeModel = obj::loadModelFromFile("models/plane.obj");
 
 	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
@@ -327,7 +594,7 @@ void init()
 	normalEarth = Core::LoadTexture("textures/earth2_normals.png");
 	normalAsteroid = Core::LoadTexture("textures/asteroid_normals.png");
 	normalTest = Core::LoadTexture("textures/test_normals.png");
-
+	//loadSkybox();
 	/*
 	
 	glUseProgram(programWater);
@@ -346,6 +613,7 @@ void init()
 	glUseProgram(0);
 	*/
 
+
 	static const float astRadius = 6.0;
 	for (int i = 0; i < NUM_ASTEROIDS; i++)
 	{
@@ -361,8 +629,11 @@ void init()
 		float radius = camRadius *(0.95 + glm::linearRand(0.0f, 0.1f));
 		cameraKeyPoints[i] = glm::vec3(cosf(angle) + camOffset, 0.0f, sinf(angle)) * radius;
 	}
-
+	initialiseReflectionFrameBuffer();
+	initialiseRefractionFrameBuffer();
 	appLoadingTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+
+
 }
 
 void shutdown()
@@ -370,6 +641,7 @@ void shutdown()
 	shaderLoader.DeleteProgram(programColor);
 	shaderLoader.DeleteProgram(programTexture);
 	shaderLoader.DeleteProgram(programWater);
+	shaderLoader.DeleteProgram(programSkybox);
 }
 
 void idle()
@@ -401,6 +673,7 @@ int main(int argc, char ** argv)
 
 	glutMainLoop();
 
+	cleanBuffers();
 	shutdown();
 
 	return 0;

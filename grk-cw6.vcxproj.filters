@@ -56,6 +56,12 @@
     <ClInclude Include="src\picopng.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\objload.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader_tex.frag">
@@ -76,22 +82,11 @@
     <None Include="shaders\shader_water.vert">
       <Filter>Shaders</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="models\plane.obj">
-      <Filter>models</Filter>
-    </Object>
-    <Object Include="models\spaceship.obj">
-      <Filter>models</Filter>
-    </Object>
-    <Object Include="models\spaceship0.obj">
-      <Filter>models</Filter>
-    </Object>
-    <Object Include="models\sphere.obj">
-      <Filter>models</Filter>
-    </Object>
-    <Object Include="models\submarine.obj">
-      <Filter>models</Filter>
-    </Object>
+    <None Include="shaders\shader_skybox.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\shader_skybox.vert">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

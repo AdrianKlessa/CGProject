@@ -1,6 +1,6 @@
 #version 400 core
 
-layout (location=0) in vec2 position;
+layout (location=2) in vec2 position;
 
 out vec2 textureCoords;
 
@@ -8,6 +8,7 @@ uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 modelMatrix;
 
+const
 
 void main(void) {
 

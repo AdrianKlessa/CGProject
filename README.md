@@ -2,9 +2,10 @@
 
 The Computer Graphics project
 
-Current issues:
-
-
+How to run:
+- clone the repo
+- copy dependency folder from the 6th CG lab
+- open with VS
 
 
 To add (mandatory):

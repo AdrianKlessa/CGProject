@@ -89,6 +89,12 @@ float skyboxVertices[] = {
 
 
 std::vector<std::string> cubeFaces = {"textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png"};
+//std::vector<std::string> cubeFaces = {"textures/cubemap/right.png",
+//										"textures/cubemap/left.png",
+//										"textures/cubemap/top.png",
+//										"textures/cubemap/bottom.png",
+//										"textures/cubemap/front.png",
+//										"textures/cubemap/back.png"};
 
 GLuint programColor;
 GLuint programTexture;
@@ -101,6 +107,8 @@ float appLoadingTime;
 obj::Model planeModel;
 obj::Model shipModel;
 obj::Model sphereModel;
+obj::Model hamSharkModel;
+
 
 float cameraAngle = glm::radians(-90.f);
 glm::vec3 cameraPos = glm::vec3(0, 0, 5);
@@ -168,53 +176,25 @@ void keyboard(unsigned char key, int x, int y)
 	case 's': cameraPos -= cameraDir * moveSpeed; break;
 	case 'd': cameraPos += glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed; break;
 	case 'a': cameraPos -= glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed; break;
-	case 'e': cameraPos += glm::vec3(0, 1, 0) * moveSpeed; break;
+	case 'e': 
+		if (cameraPos.y <= 0.9f) {
+			cameraPos += glm::vec3(0, 1, 0) * moveSpeed; break;
+		}
+		else {
+			cameraPos = cameraPos;
+			break;
+		}
 	case 'q': cameraPos -= glm::vec3(0, 1, 0) * moveSpeed; break;
 	}
 }
 
 
 glm::mat4 createCameraMatrix()
-{	/*
-	float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - appLoadingTime;
-	if (time > NUM_CAMERA_POINTS) {
-		time = std::fmod(time, NUM_CAMERA_POINTS);
-	}
-	int integerPartOfTime = floor(time);
-	int v1index = integerPartOfTime;
-	int v0index, v2index, v3index;
-
-	if (v1index == 0) {
-		v0index = NUM_CAMERA_POINTS - 1;
-	}
-	else {
-		v0index = v1index - 1;
-	}
-	v2index = std::fmod(v1index + 1, NUM_CAMERA_POINTS);
-	v3index = std::fmod(v1index + 2, NUM_CAMERA_POINTS);
-	glm::vec3 v0 = cameraKeyPoints[v0index];
-	glm::vec3 v1 = cameraKeyPoints[v1index];
-	glm::vec3 v2 = cameraKeyPoints[v2index];
-	glm::vec3 v3 = cameraKeyPoints[v3index];
-
-	float s = time - integerPartOfTime;
-
-	glm::vec3 interpolatedPos = glm::catmullRom(v0, v1, v2, v3,s);
-	glm::vec3 tangent= glm::normalize(glm::catmullRom(v0, v1, v2, v3, s + 0.001) - glm::catmullRom(v0, v1, v2, v3, s - 0.001));
-	// Obliczanie kierunku patrzenia kamery (w plaszczyznie x-z) przy uzyciu zmiennej cameraAngle kontrolowanej przez klawisze.
-	cameraAngle = atan2f(tangent.z, tangent.x);
-	cameraDir = glm::vec3(cosf(cameraAngle), 0.0f, sinf(cameraAngle));
-	glm::vec3 up = glm::vec3(0,1,0);
-	return Core::createViewMatrix(interpolatedPos, cameraDir, up);
-	*/
-	// return Core::createViewMatrix(cameraPos, cameraDir, up);
-
+{	
 	cameraDir = glm::vec3(cosf(cameraAngle), 0.0f, sinf(cameraAngle));
 	glm::vec3 up = glm::vec3(0, 1, 0);
 
 	return Core::createViewMatrix(cameraPos, cameraDir, up);
-	
-
 }
 
 void setClipPlane(GLuint program, glm::vec4 clipping_plane) {
@@ -257,7 +237,7 @@ void unbindCurrentFrameBuffer() {
 }
 
 
-
+// default methods for drawing objects
 void drawObjectColor(obj::Model * model, glm::mat4 modelMatrix, glm::vec3 color)
 {
 	GLuint program = programColor;
@@ -286,17 +266,30 @@ void drawObjectTexture(obj::Model * model, glm::mat4 modelMatrix, GLuint texture
 	glUseProgram(0);
 }
 
+void drawObjectTextureNM(obj::Model* model, glm::mat4 modelMatrix, GLuint textureId)
+{
+	GLuint program = programTexture;
+
+	glUseProgram(program);
+
+	setUpUniforms(program, modelMatrix);
+	Core::SetActiveTexture(textureId, "textureSampler", program, 0);
+
+	Core::DrawModel(model);
+
+	glUseProgram(0);
+}
+
+// additional methods for drawing stuff
 void drawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
 	glDepthFunc(GL_LEQUAL);
 	glDepthRange(1, 1);
 	glEnable(GL_DEPTH_CLAMP);
 	glUseProgram(programSkybox);
 
-	//glBindVertexArray(skyboxVAO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, skyboxVertices);
 	glEnableVertexAttribArray(0);
 	glm::mat4 view = glm::mat4(glm::mat3(viewMatrix));
-	//glm::mat4 view = viewMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "projection"), 1, GL_FALSE, (float*)&projectionMatrix);
 	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "view"), 1, GL_FALSE, (float*)&view);
 	
@@ -312,20 +305,6 @@ void drawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
 	glDepthFunc(GL_LESS);
 }
 
-void drawObjectTextureNM(obj::Model * model, glm::mat4 modelMatrix, GLuint textureId)
-{
-	GLuint program = programTexture;
-
-	glUseProgram(program);
-
-	setUpUniforms(program, modelMatrix);
-	Core::SetActiveTexture(textureId, "textureSampler", program, 0);
-
-	Core::DrawModel(model);
-
-	glUseProgram(0);
-}
-
 void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
 	GLuint program = programWater;
 	glUseProgram(program);
@@ -333,15 +312,6 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	Core::SetActiveTexture(reflectionTexture, "reflectionTexture", program, 0);
 	Core::SetActiveTexture(refractionTexture, "refractionTexture", program, 0);
-	/*
-	glUniform1i(glGetUniformLocation(programWater, "reflectionTexture"), 0);
-	glUniform1i(glGetUniformLocation(programWater, "refractionTexture"), 1);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, reflectionTexture);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, refractionTexture);
-	*/
 	
 	
 	setUpUniformsWater(cameraMatrix, perspectiveMatrix);
@@ -358,30 +328,10 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	}
 	glDisable(GL_BLEND);
 
-
-	/*
-	glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, waterVertices);
-	glEnableVertexAttribArray(0);
-	
-
-	glDrawArrays(GL_TRIANGLES, 0, 4);
-	
-	
-
-	
-	GLfloat vertices[] = { -1, -1, -0.25, // bottom left corner
-					  -1,  1, -0.52, // top left corner
-					   1,  1, -0.25, // top right corner
-					   1, -1, -0.25 }; // bottom right corner
-
-	GLubyte indices[] = { 0,1,2, // first triangle (bottom left - top left - top right)
-						 0,2,3 }; // second triangle (bottom left - top right - bottom right)
-
-
-	glDrawArrays(GL_TRIANGLES, 0,6);
-	*/
 	glUseProgram(0);
 }
+
+// here starts a weird part
 void bindFrameBuffer(int frameBuffer, int width, int height) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
@@ -442,17 +392,7 @@ void initialiseRefractionFrameBuffer() {
 
 void loadSkybox() {
 
-	/*
-	glUseProgram(programSkybox);
-	glGenVertexArrays(1, &skyboxVAO);
-	glBindVertexArray(skyboxVAO);
-	glGenBuffers(1, &skyboxVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	*/
-
+	
 
 	glGenTextures(1, &skyboxTexture);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
@@ -461,7 +401,7 @@ void loadSkybox() {
 	unsigned char* data;
 	for (unsigned int i = 0; i < cubeFaces.size(); i++)
 	{
-		data = stbi_load(cubeFaces[i].c_str(), &width, &height, &nrChannels, 0);
+		data = stbi_load(cubeFaces[i].c_str(), &width, &height, &nrChannels, 3);
 		if (data)
 		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
@@ -481,97 +421,63 @@ void loadSkybox() {
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	//glBindVertexArray(defaultVAO);
 }
 
 void renderScene()
 {
+	//data for hammer shark movement
+	float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - appLoadingTime;
+
+	int time_int = floorf(time);
+	int v1 = (time_int - 1) % NUM_CAMERA_POINTS;
+	int v2 = time_int % NUM_CAMERA_POINTS;
+	int v3 = (time_int + 1) % NUM_CAMERA_POINTS;
+	int v4 = (time_int + 2) % NUM_CAMERA_POINTS;
 	
+	// opcjonalny ruch swiatla do testow
 	bool animateLight = false;
 	if (animateLight) {
 		float lightAngle = (glutGet(GLUT_ELAPSED_TIME) / 1000.0f) * 3.14 / 8;
 		lightDir = glm::normalize(glm::vec3(sin(lightAngle), -1.0f, cos(lightAngle)));
 	}
 
-	
+
+	// Aktualizacja macierzy widoku i rzutowania. Macierze sa przechowywane w zmiennych globalnych, bo uzywa ich funkcja drawObject.
+	// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
+	//  Jest to mozliwe dzieki temu, ze macierze widoku i rzutowania sa takie same dla wszystkich obiektow!)
 	cameraMatrix = createCameraMatrix();
 	perspectiveMatrix = Core::createPerspectiveMatrix(0.1f, 100.f, frustumScale);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 	
-	
-	//--------Reflection pass----------
-	float distance = 2 * cameraPos.y;
-	cameraPos.y -= distance;
-	float pitch = cameraDir.y;
-	cameraDir.y = -pitch;
-
-	setClipPlane(programTexture, glm::vec4(0, 1, 0, 0));
-	bindFrameBuffer(reflectionFrameBuffer,REFLECTION_WIDTH,REFLECTION_HEIGHT);
-	
-	
-	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0,-0.25f,0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0,1,0)) * glm::scale(glm::vec3(0.07f))*glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
-	drawObjectTexture(&shipModel, shipModelMatrix, textureShip,normalShip);
-	
-	
-
-
-
-	
-	for (int i = 0; i < NUM_ASTEROIDS; i++)
-	{
-		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid,normalAsteroid);
-	}
-	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth,normalEarth);
-	
-	//drawObjectTexture(&planeModel, glm::translate(glm::vec3(-3, 0, 0))*glm::scale(glm::vec3(1, 0.5, 0.5)), textureTest,normalTest);
-	drawSkybox(cameraMatrix, perspectiveMatrix);
-	unbindCurrentFrameBuffer();
-	cameraPos.y += distance;
-	cameraDir.y = pitch;
-	//-----------Refraction pass-------------
-	setClipPlane(programTexture, glm::vec4(0, -1, 0, 0));
-	bindFrameBuffer(refractionFrameBuffer, REFLECTION_WIDTH, REFLECTION_HEIGHT);
-
-
-	shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(0.07f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
+	// drawing ship model
+	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0))
+		* glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0))
+		* glm::scale(glm::vec3(0.07f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f))
+		* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f))
+		* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
 	drawObjectTexture(&shipModel, shipModelMatrix, textureShip, normalShip);
-	
 
+	// drawing EARTH
+	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
 
+	// drawing hammer shark
+	drawObjectColor(&hamSharkModel, glm::translate(glm::catmullRom(cameraKeyPoints[v1], cameraKeyPoints[v2], cameraKeyPoints[v3], cameraKeyPoints[v4], time - time_int))
+		* glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) //init pos
+		* glm::rotate(glm::radians(-90.0f), glm::vec3(0, 0, 1)) //init pos
+		* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 0, 1)) //follow forward
+		* glm::scale(glm::vec3(0.01f)), glm::vec3(0.5, 0.6, 0.3)); //make small
 
-
-
+	// drawing asteroids
 	for (int i = 0; i < NUM_ASTEROIDS; i++)
 	{
 		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
 	}
-	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
 
-	//drawObjectTexture(&planeModel, glm::translate(glm::vec3(-3, 0, 0))*glm::scale(glm::vec3(1, 0.5, 0.5)), textureTest,normalTest);
-	drawSkybox(cameraMatrix, perspectiveMatrix);
-	unbindCurrentFrameBuffer();
-	//------------Final pass-------------
-	setClipPlane(programTexture,glm::vec4(0, -1, 0, 10000));
-	drawObjectTexture(&shipModel, shipModelMatrix, textureShip,normalShip);
-
-
-
-
-
-
-	for (int i = 0; i < NUM_ASTEROIDS; i++)
-	{
-		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
-	}
-	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
-	
-	//glBindVertexArray(waterVAO);
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 	drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
 	
-
 	glutSwapBuffers();
 }
 
@@ -581,22 +487,11 @@ void init()
 {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CLIP_DISTANCE0);
-	/*
-	glGenVertexArrays(1, &defaultVAO);
-	glBindVertexArray(defaultVAO);
-	glGenBuffers(1, &defaultVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, defaultVBO);
-	*/
-
+	
 	
 	waterTile myWater = waterTile(0, 0, 1);
 	waterTiles.push_back(myWater);
-	/*
-	glGenVertexArrays(1, &normalVAO);
-	glGenBuffers(1, &normalVBO);
-	glBindVertexArray(normalVAO);
-	glBindBuffer(GL_ARRAY_BUFFER,normalVBO);
-	*/
+	
 
 	programColor = shaderLoader.CreateProgram("shaders/shader_color.vert", "shaders/shader_color.frag");
 	programTexture = shaderLoader.CreateProgram("shaders/shader_tex.vert", "shaders/shader_tex.frag");
@@ -604,7 +499,7 @@ void init()
 	programSkybox = shaderLoader.CreateProgram("shaders/shader_skybox.vert", "shaders/shader_skybox.frag");
 	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
-	//planeModel = obj::loadModelFromFile("models/plane.obj");
+	hamSharkModel = obj::loadModelFromFile("models/hamShark.obj");
 
 	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
@@ -616,23 +511,7 @@ void init()
 	normalAsteroid = Core::LoadTexture("textures/asteroid_normals.png");
 	normalTest = Core::LoadTexture("textures/test_normals.png");
 	loadSkybox();
-	/*
-	
-	glUseProgram(programWater);
 
-	glGenVertexArrays(1, &waterVAO);
-	glGenBuffers(1, &waterVBO);
-	
-	glBindVertexArray(waterVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, waterVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(waterVertices), waterVertices, GL_STATIC_DRAW);
-	
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	
-	glBindVertexArray(normalVAO);
-	glUseProgram(0);
-	*/
 
 
 	static const float astRadius = 6.0;

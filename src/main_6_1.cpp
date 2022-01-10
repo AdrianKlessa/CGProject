@@ -109,6 +109,7 @@ obj::Model shipModel;
 obj::Model sphereModel;
 obj::Model hamSharkModel;
 obj::Model terrainModel;
+obj::Model rockModel1;
 
 
 float cameraAngle = glm::radians(-90.f);
@@ -142,25 +143,25 @@ GLuint normalVAO;
 
 float frustumScale = 1.f;
 std::list<waterTile> waterTiles;
-static const int NUM_ASTEROIDS = 8;
-glm::vec3 asteroidPositions[NUM_ASTEROIDS];
+static const int NUM_ROCKS = 200;
+glm::vec3 rockPositions[NUM_ROCKS];
 static const int NUM_CAMERA_POINTS = 10;
 glm::vec3 cameraKeyPoints[NUM_CAMERA_POINTS];
 
-int REFLECTION_WIDTH = 320;
-int REFLECTION_HEIGHT = 180;
+//int REFLECTION_WIDTH = 320;
+//int REFLECTION_HEIGHT = 180;
+//
+//int REFRACTION_WIDTH = 1280;
+//int REFRACTION_HEIGHT = 720;
 
-int REFRACTION_WIDTH = 1280;
-int REFRACTION_HEIGHT = 720;
-
-GLuint reflectionFrameBuffer;
-GLuint reflectionTexture;
-GLuint reflectionDepthBuffer;
-
-
-GLuint refractionFrameBuffer;
-GLuint refractionTexture;
-GLuint refractionDepthTexture;
+//GLuint reflectionFrameBuffer;
+//GLuint reflectionTexture;
+//GLuint reflectionDepthBuffer;
+//
+//
+//GLuint refractionFrameBuffer;
+//GLuint refractionTexture;
+//GLuint refractionDepthTexture;
 GLuint skyboxVAO;
 GLuint skyboxVBO;
 GLuint skyboxTexture;
@@ -261,13 +262,6 @@ void setClipPlane(GLuint program, glm::vec4 clipping_plane) {
 	glUniform4f(glGetUniformLocation(program, "plane"), clipping_plane.x,clipping_plane.y,clipping_plane.z,clipping_plane.w);
 }
 
-void cleanBuffers() {
-	glDeleteFramebuffers(1,&reflectionFrameBuffer);
-	glDeleteFramebuffers(1,&refractionFrameBuffer);
-	glDeleteTextures(1,&reflectionTexture);
-	glDeleteTextures(1, &refractionTexture);
-	glDeleteTextures(1, &refractionDepthTexture);
-}
 
 void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 {
@@ -370,8 +364,6 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glUseProgram(program);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	Core::SetActiveTexture(reflectionTexture, "reflectionTexture", program, 0);
-	Core::SetActiveTexture(refractionTexture, "refractionTexture", program, 0);
 	
 	
 	setUpUniformsWater(cameraMatrix, perspectiveMatrix);
@@ -435,19 +427,6 @@ GLuint createDepthBufferAttachment(int width, int height) {
 	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
 	return depthBuffer;
-}
-
-void initialiseReflectionFrameBuffer() {
-	reflectionFrameBuffer = createFrameBuffer();
-	reflectionTexture = createTextureAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
-	reflectionDepthBuffer = createDepthBufferAttachment(REFLECTION_WIDTH, REFLECTION_HEIGHT);
-	unbindCurrentFrameBuffer();
-}
-void initialiseRefractionFrameBuffer() {
-	refractionFrameBuffer = createFrameBuffer();
-	refractionTexture = createTextureAttachment(REFRACTION_WIDTH, REFRACTION_HEIGHT);
-	refractionDepthTexture = createDepthBufferAttachment(REFRACTION_WIDTH, REFRACTION_HEIGHT);
-	unbindCurrentFrameBuffer();
 }
 
 void loadSkybox() {
@@ -521,10 +500,12 @@ void renderScene()
 	// drawing EARTH
 	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
 
-	// drawing asteroids
-	for (int i = 0; i < NUM_ASTEROIDS; i++)
+	// drawing rocks
+	for (int i = 0; i < NUM_ROCKS; i++)
 	{
-		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
+		drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at rand places
+										* glm::scale(glm::vec3(3.0f)), // scale 3x
+											glm::vec3(0.3, 0.7, 0.9)); // color
 	}
 
 	// drawing hammer shark
@@ -532,7 +513,8 @@ void renderScene()
 		* glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) //init pos
 		* glm::rotate(glm::radians(-90.0f), glm::vec3(0, 0, 1)) //init pos
 		* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 0, 1)) //follow forward
-		* glm::scale(glm::vec3(0.01f)), glm::vec3(0.5, 0.6, 0.3)); //make small
+		* glm::scale(glm::vec3(0.01f)), //make small
+		glm::vec3(0.5, 0.6, 0.3)); //color
 
 	// draw terrain
 	drawObjectTexture(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(0.5f)),
@@ -565,6 +547,7 @@ void init()
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
 	hamSharkModel = obj::loadModelFromFile("models/hamShark.obj");
 	terrainModel = obj::loadModelFromFile("models/terrain.obj");
+	rockModel1 = obj::loadModelFromFile("models/bunch/SM_Big_Rock_02.obj");
 
 	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
@@ -583,10 +566,16 @@ void init()
 
 
 	static const float astRadius = 6.0;
-	for (int i = 0; i < NUM_ASTEROIDS; i++)
+	for (int i = 0; i < NUM_ROCKS; i++)
 	{
-		float angle = (float(i))*(2 * glm::pi<float>() / NUM_ASTEROIDS);
-		asteroidPositions[i] = glm::vec3(cosf(angle), 0.0f, sinf(angle)) * astRadius + glm::sphericalRand(0.5f);
+		if (i % 2 == 0)
+		{
+			rockPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-45.0f), rand() % 100 + 0);
+		}
+		else {
+			rockPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-45.0f), rand() % 100 + -100);
+
+		}
 	}
 
 	static const float camRadius = 3.55;
@@ -597,8 +586,6 @@ void init()
 		float radius = camRadius *(0.95 + glm::linearRand(0.0f, 0.1f));
 		cameraKeyPoints[i] = glm::vec3(cosf(angle) + camOffset, 0.0f, sinf(angle)) * radius;
 	}
-	initialiseReflectionFrameBuffer();
-	initialiseRefractionFrameBuffer();
 	appLoadingTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 
 
@@ -641,7 +628,6 @@ int main(int argc, char ** argv)
 
 	glutMainLoop();
 
-	cleanBuffers();
 	shutdown();
 
 	return 0;

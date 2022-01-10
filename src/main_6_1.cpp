@@ -108,6 +108,7 @@ obj::Model planeModel;
 obj::Model shipModel;
 obj::Model sphereModel;
 obj::Model hamSharkModel;
+obj::Model terrainModel;
 
 
 float cameraAngle = glm::radians(-90.f);
@@ -124,11 +125,13 @@ GLuint textureTest;
 GLuint textureEarth;
 GLuint textureAsteroid;
 GLuint textureShip;
+GLuint textureTerrain;
 
 GLuint normalTest;
 GLuint normalEarth;
 GLuint normalAsteroid;
 GLuint normalShip;
+GLuint normalTerrain;
 float waterVertices[] = { -100.0f, -100.0f, -100.0f, 1.0f, 1.0f, -1.0f, 100.0f, -1.0f, -1.0f, 1.0f, 1.0f, 100.0f };
 
 GLuint waterVBO;
@@ -167,24 +170,81 @@ GLuint defaultVBO;
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
-	float moveSpeed = 0.1f;
+	float moveSpeed = 0.1f * 10;
+
+	const float xAndYBoundary = 150.0f;
+	const float zTopBoundary = 0.9f;
+	const float zBottomBoundary = -35.0f;
+	glm::vec3 nextStep;
+
+
+
 	switch(key)
 	{
-	case 'z': cameraAngle -= angleSpeed; break;
-	case 'x': cameraAngle += angleSpeed; break;
-	case 'w': cameraPos += cameraDir * moveSpeed; break;
-	case 's': cameraPos -= cameraDir * moveSpeed; break;
-	case 'd': cameraPos += glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed; break;
-	case 'a': cameraPos -= glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed; break;
-	case 'e': 
-		if (cameraPos.y <= 0.9f) {
-			cameraPos += glm::vec3(0, 1, 0) * moveSpeed; break;
-		}
-		else {
-			cameraPos = cameraPos;
+	case 'z': // turn left
+		cameraAngle -= angleSpeed; 
+		break;
+	case 'x': // turn right
+		cameraAngle += angleSpeed; 
+		break;
+
+	case 'w': //forward
+		nextStep = cameraPos + cameraDir * moveSpeed;
+
+		if (abs(abs(nextStep.z)) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+			cameraPos = nextStep;
 			break;
 		}
-	case 'q': cameraPos -= glm::vec3(0, 1, 0) * moveSpeed; break;
+		else {
+			break;
+		}
+	case 's': //back
+		nextStep = cameraPos - cameraDir * moveSpeed;
+
+		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+			cameraPos = nextStep; 
+			break;
+		}
+		else {
+			break;
+		}
+	case 'd': //right
+		nextStep = cameraPos + glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed;
+
+		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+			cameraPos = nextStep; 
+			break;
+		}
+		else {
+			break;
+		}
+	case 'a': //left
+		nextStep = cameraPos - glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed;
+
+		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+			cameraPos = nextStep;
+			break;
+		}
+		else {
+			break;
+		}
+
+	case 'e': //up
+		if (cameraPos.y <= zTopBoundary) {
+			cameraPos += glm::vec3(0, 1, 0) * moveSpeed;
+			break;
+		}
+		else {
+			break;
+		}
+	case 'q': //down
+		if (cameraPos.y >= zBottomBoundary) {
+			cameraPos -= glm::vec3(0, 1, 0) * moveSpeed;
+			break;
+		}
+		else {
+			break;
+		}
 	}
 }
 
@@ -322,7 +382,7 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 
 	for (auto& tile : water) {
 		glm::mat4 modelMatrix = glm::translate(glm::mat4(), glm::vec3(tile.getX(), tile.getHeight(), tile.getZ()));	
-		modelMatrix = modelMatrix * glm::scale(glm::mat4(), glm::vec3(tile.TILE_SIZE,tile.TILE_SIZE, tile.TILE_SIZE));
+		modelMatrix = modelMatrix * glm::scale(glm::mat4(), glm::vec3(tile.TILE_SIZE * 15.0f, tile.TILE_SIZE, tile.TILE_SIZE * 15.0f));
 		glUniformMatrix4fv(glGetUniformLocation(programWater, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 	}
@@ -441,7 +501,6 @@ void renderScene()
 		lightDir = glm::normalize(glm::vec3(sin(lightAngle), -1.0f, cos(lightAngle)));
 	}
 
-
 	// Aktualizacja macierzy widoku i rzutowania. Macierze sa przechowywane w zmiennych globalnych, bo uzywa ich funkcja drawObject.
 	// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
 	//  Jest to mozliwe dzieki temu, ze macierze widoku i rzutowania sa takie same dla wszystkich obiektow!)
@@ -462,6 +521,12 @@ void renderScene()
 	// drawing EARTH
 	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
 
+	// drawing asteroids
+	for (int i = 0; i < NUM_ASTEROIDS; i++)
+	{
+		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
+	}
+
 	// drawing hammer shark
 	drawObjectColor(&hamSharkModel, glm::translate(glm::catmullRom(cameraKeyPoints[v1], cameraKeyPoints[v2], cameraKeyPoints[v3], cameraKeyPoints[v4], time - time_int))
 		* glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) //init pos
@@ -469,11 +534,10 @@ void renderScene()
 		* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 0, 1)) //follow forward
 		* glm::scale(glm::vec3(0.01f)), glm::vec3(0.5, 0.6, 0.3)); //make small
 
-	// drawing asteroids
-	for (int i = 0; i < NUM_ASTEROIDS; i++)
-	{
-		drawObjectTexture(&sphereModel, glm::translate(asteroidPositions[i]) * glm::scale(glm::vec3(0.01f)), textureAsteroid, normalAsteroid);
-	}
+	// draw terrain
+	drawObjectTexture(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(0.5f)),
+						textureTerrain, 
+						normalTerrain);
 
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 	drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
@@ -500,16 +564,20 @@ void init()
 	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
 	hamSharkModel = obj::loadModelFromFile("models/hamShark.obj");
+	terrainModel = obj::loadModelFromFile("models/terrain.obj");
 
 	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
 	textureAsteroid = Core::LoadTexture("textures/asteroid.png");
 	textureTest = Core::LoadTexture("textures/test.png");
+	textureTerrain = Core::LoadTexture("textures/terrain/diffuse.png");
 
 	normalShip = Core::LoadTexture("textures/Submarine_normals.png");
 	normalEarth = Core::LoadTexture("textures/earth2_normals.png");
 	normalAsteroid = Core::LoadTexture("textures/asteroid_normals.png");
 	normalTest = Core::LoadTexture("textures/test_normals.png");
+	normalTerrain = Core::LoadTexture("textures/terrain/hight.png");
+
 	loadSkybox();
 
 

@@ -1,4 +1,4 @@
-#version 430 core
+#version 330 core
 
 uniform sampler2D textureSampler;
 uniform sampler2D normalSampler;

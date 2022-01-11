@@ -156,7 +156,7 @@ GLuint skyboxTexture;
 
 GLuint defaultVAO;
 GLuint defaultVBO;
-void keyboard(unsigned char key, int x, int y)
+void keyboard(unsigned char key)
 {
 	float angleSpeed = 0.1f;
 	float moveSpeed = 0.1f * 10;
@@ -237,7 +237,6 @@ void keyboard(unsigned char key, int x, int y)
 	}
 }
 
-
 glm::mat4 createCameraMatrix()
 {
 	cameraDir = glm::vec3(cosf(cameraAngle), 0.0f, sinf(cameraAngle));
@@ -268,12 +267,6 @@ void setUpUniformsWater(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
 	//View matrix
 	//Projection matrix
 }
-
-void unbindCurrentFrameBuffer() {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, 600, 600);
-}
-
 
 // default methods for drawing objects
 void drawObjectColor(obj::Model* model, glm::mat4 modelMatrix, glm::vec3 color)
@@ -367,56 +360,7 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glUseProgram(0);
 }
 
-// here starts a weird part
-void bindFrameBuffer(int frameBuffer, int width, int height) {
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-	glViewport(0, 0, width, height);
-}
-
-GLuint createFrameBuffer() {
-	GLuint frameBuffer;
-	glGenFramebuffers(1, &frameBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-	glDrawBuffer(GL_COLOR_ATTACHMENT0);
-	return frameBuffer;
-}
-
-GLuint createTextureAttachment(int width, int height) {
-	GLuint texture;
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
-	return texture;
-}
-
-GLuint createDepthTextureAttachment(int width, int height) {
-	GLuint texture;
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void*)0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture, 0);
-	return texture;
-}
-
-GLuint createDepthBufferAttachment(int width, int height) {
-	GLuint depthBuffer;
-	glGenRenderbuffers(1, &depthBuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, width, height);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
-	return depthBuffer;
-}
-
 void loadSkybox() {
-
-
-
 	glGenTextures(1, &skyboxTexture);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
 

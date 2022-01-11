@@ -156,7 +156,7 @@ GLuint skyboxTexture;
 
 GLuint defaultVAO;
 GLuint defaultVBO;
-void keyboard(unsigned char key)
+void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
 	float moveSpeed = 0.1f * 10;

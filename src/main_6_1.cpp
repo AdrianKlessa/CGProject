@@ -88,8 +88,8 @@ float skyboxVertices[] = {
 };
 
 
-std::vector<std::string> cubeFaces = {"textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png"};
-
+//std::vector<std::string> cubeFaces = {"textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png"};
+std::vector<std::string> cubeFaces = { "textures/skybox/px.png","textures/skybox/nx.png","textures/skybox/py.png","textures/skybox/ny.png","textures/skybox/pz.png","textures/skybox/nz.png" };
 GLuint programColor;
 GLuint programTexture;
 GLuint programWater;
@@ -332,7 +332,7 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	Core::SetActiveTexture(reflectionTexture, "reflectionTexture", program, 0);
-	Core::SetActiveTexture(refractionTexture, "refractionTexture", program, 0);
+	Core::SetActiveTexture(refractionTexture, "refractionTexture", program, 1);
 	/*
 	glUniform1i(glGetUniformLocation(programWater, "reflectionTexture"), 0);
 	glUniform1i(glGetUniformLocation(programWater, "refractionTexture"), 1);
@@ -347,7 +347,7 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	setUpUniformsWater(cameraMatrix, perspectiveMatrix);
 
 	float vertices[] = { -1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1 };
-	glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, vertices);
+	glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, &vertices);
 	glEnableVertexAttribArray(2);
 
 	for (auto& tile : water) {
@@ -461,7 +461,7 @@ void loadSkybox() {
 	unsigned char* data;
 	for (unsigned int i = 0; i < cubeFaces.size(); i++)
 	{
-		data = stbi_load(cubeFaces[i].c_str(), &width, &height, &nrChannels, 0);
+		data = stbi_load(cubeFaces[i].c_str(), &width, &height, &nrChannels, 3);
 		if (data)
 		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,

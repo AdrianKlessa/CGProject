@@ -88,9 +88,7 @@ float skyboxVertices[] = {
 };
 
 
-
-//std::vector<std::string> cubeFaces = {"textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png"};
-std::vector<std::string> cubeFaces = { "textures/skybox/px.png","textures/skybox/nx.png","textures/skybox/py.png","textures/skybox/ny.png","textures/skybox/pz.png","textures/skybox/nz.png" };
+std::vector<std::string> cubeFaces = { "textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png" };
 
 GLuint programColor;
 GLuint programTexture;
@@ -338,16 +336,11 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  
-	Core::SetActiveTexture(reflectionTexture, "reflectionTexture", program, 0);
-	Core::SetActiveTexture(refractionTexture, "refractionTexture", program, 1);
-
-
 
 	setUpUniformsWater(cameraMatrix, perspectiveMatrix);
 
 	float vertices[] = { -1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1 };
-	glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, &vertices);
+	glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, vertices);
 	glEnableVertexAttribArray(2);
 
 	for (auto& tile : water) {

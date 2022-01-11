@@ -1,4 +1,4 @@
-#version 430 core
+#version 330 core
 
 uniform vec3 objectColor;
 uniform vec3 lightDir;

@@ -88,7 +88,7 @@ float skyboxVertices[] = {
 };
 
 
-std::vector<std::string> cubeFaces = {"textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png"};
+std::vector<std::string> cubeFaces = { "textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png" };
 //std::vector<std::string> cubeFaces = {"textures/cubemap/right.png",
 //										"textures/cubemap/left.png",
 //										"textures/cubemap/top.png",
@@ -110,6 +110,7 @@ obj::Model sphereModel;
 obj::Model hamSharkModel;
 obj::Model terrainModel;
 obj::Model rockModel1;
+obj::Model seaWeedModel1;
 
 
 float cameraAngle = glm::radians(-90.f);
@@ -120,7 +121,6 @@ glm::mat4 cameraMatrix, perspectiveMatrix;
 
 glm::vec3 lightDir = glm::normalize(glm::vec3(1.0f, -1.0f, -1.0f));
 
-glm::vec4 clippingPlane = glm::vec4(0, -1, 0, 15);
 
 GLuint textureTest;
 GLuint textureEarth;
@@ -143,25 +143,13 @@ GLuint normalVAO;
 
 float frustumScale = 1.f;
 std::list<waterTile> waterTiles;
-static const int NUM_ROCKS = 200;
+static const int NUM_ROCKS = 20;
 glm::vec3 rockPositions[NUM_ROCKS];
+glm::vec3 seaWeedPositions[NUM_ROCKS];
+
 static const int NUM_CAMERA_POINTS = 10;
 glm::vec3 cameraKeyPoints[NUM_CAMERA_POINTS];
 
-//int REFLECTION_WIDTH = 320;
-//int REFLECTION_HEIGHT = 180;
-//
-//int REFRACTION_WIDTH = 1280;
-//int REFRACTION_HEIGHT = 720;
-
-//GLuint reflectionFrameBuffer;
-//GLuint reflectionTexture;
-//GLuint reflectionDepthBuffer;
-//
-//
-//GLuint refractionFrameBuffer;
-//GLuint refractionTexture;
-//GLuint refractionDepthTexture;
 GLuint skyboxVAO;
 GLuint skyboxVBO;
 GLuint skyboxTexture;
@@ -180,13 +168,13 @@ void keyboard(unsigned char key, int x, int y)
 
 
 
-	switch(key)
+	switch (key)
 	{
 	case 'z': // turn left
-		cameraAngle -= angleSpeed; 
+		cameraAngle -= angleSpeed;
 		break;
 	case 'x': // turn right
-		cameraAngle += angleSpeed; 
+		cameraAngle += angleSpeed;
 		break;
 
 	case 'w': //forward
@@ -203,7 +191,7 @@ void keyboard(unsigned char key, int x, int y)
 		nextStep = cameraPos - cameraDir * moveSpeed;
 
 		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
-			cameraPos = nextStep; 
+			cameraPos = nextStep;
 			break;
 		}
 		else {
@@ -213,7 +201,7 @@ void keyboard(unsigned char key, int x, int y)
 		nextStep = cameraPos + glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed;
 
 		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
-			cameraPos = nextStep; 
+			cameraPos = nextStep;
 			break;
 		}
 		else {
@@ -251,15 +239,11 @@ void keyboard(unsigned char key, int x, int y)
 
 
 glm::mat4 createCameraMatrix()
-{	
+{
 	cameraDir = glm::vec3(cosf(cameraAngle), 0.0f, sinf(cameraAngle));
 	glm::vec3 up = glm::vec3(0, 1, 0);
 
 	return Core::createViewMatrix(cameraPos, cameraDir, up);
-}
-
-void setClipPlane(GLuint program, glm::vec4 clipping_plane) {
-	glUniform4f(glGetUniformLocation(program, "plane"), clipping_plane.x,clipping_plane.y,clipping_plane.z,clipping_plane.w);
 }
 
 
@@ -271,18 +255,18 @@ void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 	glm::mat4 transformation = perspectiveMatrix * cameraMatrix * modelMatrix;
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewProjectionMatrix"), 1, GL_FALSE, (float*)&transformation);
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
-	
+
 }
 
 void setUpUniformsWater(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
 	GLuint program = programWater;
-	
+
 	glUniformMatrix4fv(glGetUniformLocation(program, "viewMatrix"), 1, GL_FALSE, (float*)&cameraMatrix);
 	glUniformMatrix4fv(glGetUniformLocation(program, "projectionMatrix"), 1, GL_FALSE, (float*)&perspectiveMatrix);
 
-//Model matrix
-//View matrix
-//Projection matrix
+	//Model matrix
+	//View matrix
+	//Projection matrix
 }
 
 void unbindCurrentFrameBuffer() {
@@ -292,7 +276,7 @@ void unbindCurrentFrameBuffer() {
 
 
 // default methods for drawing objects
-void drawObjectColor(obj::Model * model, glm::mat4 modelMatrix, glm::vec3 color)
+void drawObjectColor(obj::Model* model, glm::mat4 modelMatrix, glm::vec3 color)
 {
 	GLuint program = programColor;
 
@@ -306,7 +290,7 @@ void drawObjectColor(obj::Model * model, glm::mat4 modelMatrix, glm::vec3 color)
 	glUseProgram(0);
 }
 
-void drawObjectTexture(obj::Model * model, glm::mat4 modelMatrix, GLuint textureId, GLuint normalmapId)
+void drawObjectTextureNM(obj::Model* model, glm::mat4 modelMatrix, GLuint textureId, GLuint normalmapId)
 {
 	GLuint program = programTexture;
 
@@ -320,7 +304,7 @@ void drawObjectTexture(obj::Model * model, glm::mat4 modelMatrix, GLuint texture
 	glUseProgram(0);
 }
 
-void drawObjectTextureNM(obj::Model* model, glm::mat4 modelMatrix, GLuint textureId)
+void drawObjectTexture(obj::Model* model, glm::mat4 modelMatrix, GLuint textureId)
 {
 	GLuint program = programTexture;
 
@@ -346,13 +330,13 @@ void drawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
 	glm::mat4 view = glm::mat4(glm::mat3(viewMatrix));
 	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "projection"), 1, GL_FALSE, (float*)&projectionMatrix);
 	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "view"), 1, GL_FALSE, (float*)&view);
-	
-	
+
+
 	glUniform1i(glGetUniformLocation(programSkybox, "skybox"), 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
 	glDrawArrays(GL_TRIANGLES, 0, 36);
-	
+
 	glUseProgram(0);
 	glDisable(GL_DEPTH_CLAMP);
 	glDepthRange(0, 1);
@@ -364,8 +348,8 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glUseProgram(program);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
-	
+
+
 	setUpUniformsWater(cameraMatrix, perspectiveMatrix);
 
 	float vertices[] = { -1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1 };
@@ -373,7 +357,7 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glEnableVertexAttribArray(2);
 
 	for (auto& tile : water) {
-		glm::mat4 modelMatrix = glm::translate(glm::mat4(), glm::vec3(tile.getX(), tile.getHeight(), tile.getZ()));	
+		glm::mat4 modelMatrix = glm::translate(glm::mat4(), glm::vec3(tile.getX(), tile.getHeight(), tile.getZ()));
 		modelMatrix = modelMatrix * glm::scale(glm::mat4(), glm::vec3(tile.TILE_SIZE * 15.0f, tile.TILE_SIZE, tile.TILE_SIZE * 15.0f));
 		glUniformMatrix4fv(glGetUniformLocation(programWater, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 		glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -431,11 +415,11 @@ GLuint createDepthBufferAttachment(int width, int height) {
 
 void loadSkybox() {
 
-	
+
 
 	glGenTextures(1, &skyboxTexture);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
-	
+
 	int width, height, nrChannels;
 	unsigned char* data;
 	for (unsigned int i = 0; i < cubeFaces.size(); i++)
@@ -472,7 +456,7 @@ void renderScene()
 	int v2 = time_int % NUM_CAMERA_POINTS;
 	int v3 = (time_int + 1) % NUM_CAMERA_POINTS;
 	int v4 = (time_int + 2) % NUM_CAMERA_POINTS;
-	
+
 	// opcjonalny ruch swiatla do testow
 	bool animateLight = false;
 	if (animateLight) {
@@ -488,24 +472,28 @@ void renderScene()
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
-	
+
 	// drawing ship model
 	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0))
 		* glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0))
 		* glm::scale(glm::vec3(0.07f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f))
 		* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f))
 		* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
-	drawObjectTexture(&shipModel, shipModelMatrix, textureShip, normalShip);
+	drawObjectTextureNM(&shipModel, shipModelMatrix, textureShip, normalShip);
 
 	// drawing EARTH
-	drawObjectTexture(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
+	drawObjectTextureNM(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
 
-	// drawing rocks
+	// drawing rocks and seaweed
 	for (int i = 0; i < NUM_ROCKS; i++)
 	{
-		drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at rand places
-										* glm::scale(glm::vec3(3.0f)), // scale 3x
-											glm::vec3(0.3, 0.7, 0.9)); // color
+		drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
+			* glm::scale(glm::vec3(3.0f)), // scale 3x
+			glm::vec3(0.3, 0.3, 0.3)); // color
+
+		drawObjectColor(&seaWeedModel1, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
+			* glm::scale(glm::vec3(3.0f)), // scale 3x
+			glm::vec3(0.5, 0.8, 0.3)); //color
 	}
 
 	// drawing hammer shark
@@ -517,13 +505,13 @@ void renderScene()
 		glm::vec3(0.5, 0.6, 0.3)); //color
 
 	// draw terrain
-	drawObjectTexture(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(0.5f)),
-						textureTerrain, 
-						normalTerrain);
+	drawObjectTextureNM(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(0.5f)),
+		textureTerrain,
+		normalTerrain);
 
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 	drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
-	
+
 	glutSwapBuffers();
 }
 
@@ -532,12 +520,11 @@ void renderScene()
 void init()
 {
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CLIP_DISTANCE0);
-	
-	
+
+
 	waterTile myWater = waterTile(0, 0, 1);
 	waterTiles.push_back(myWater);
-	
+
 
 	programColor = shaderLoader.CreateProgram("shaders/shader_color.vert", "shaders/shader_color.frag");
 	programTexture = shaderLoader.CreateProgram("shaders/shader_tex.vert", "shaders/shader_tex.frag");
@@ -545,9 +532,11 @@ void init()
 	programSkybox = shaderLoader.CreateProgram("shaders/shader_skybox.vert", "shaders/shader_skybox.frag");
 	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
+
 	hamSharkModel = obj::loadModelFromFile("models/hamShark.obj");
 	terrainModel = obj::loadModelFromFile("models/terrain.obj");
 	rockModel1 = obj::loadModelFromFile("models/bunch/SM_Big_Rock_02.obj");
+	seaWeedModel1 = obj::loadModelFromFile("models/seaweed1.obj");
 
 	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
@@ -564,17 +553,31 @@ void init()
 	loadSkybox();
 
 
-
-	static const float astRadius = 6.0;
+	// generating rand rock positons and putting them to an array
 	for (int i = 0; i < NUM_ROCKS; i++)
 	{
-		if (i % 2 == 0)
+		switch (i % 4)
 		{
+		case 0: // pos x, pos y
 			rockPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-45.0f), rand() % 100 + 0);
-		}
-		else {
-			rockPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-45.0f), rand() % 100 + -100);
+			seaWeedPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-40.0f), rand() % 100 + 0);
 
+			break;
+		case 1: // neg x, pos y
+			rockPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-45.0f), rand() % 100 + 0);
+			seaWeedPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-40.0f), rand() % 100 + 0);
+
+			break;
+		case 2: //pos x, neg y
+			rockPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-45.0f), rand() % 100 - 100);
+			seaWeedPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-40.0f), rand() % 100 - 100);
+
+			break;
+		case 3: // neg x, neg y
+			rockPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-45.0f), rand() % 100 + -100);
+			seaWeedPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-40.0f), rand() % 100 + -100);
+
+			break;
 		}
 	}
 
@@ -582,8 +585,8 @@ void init()
 	static const float camOffset = 0.6;
 	for (int i = 0; i < NUM_CAMERA_POINTS; i++)
 	{
-		float angle = (float(i))*(2 * glm::pi<float>() / NUM_CAMERA_POINTS);
-		float radius = camRadius *(0.95 + glm::linearRand(0.0f, 0.1f));
+		float angle = (float(i)) * (2 * glm::pi<float>() / NUM_CAMERA_POINTS);
+		float radius = camRadius * (0.95 + glm::linearRand(0.0f, 0.1f));
 		cameraKeyPoints[i] = glm::vec3(cosf(angle) + camOffset, 0.0f, sinf(angle)) * radius;
 	}
 	appLoadingTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
@@ -611,13 +614,13 @@ void onReshape(int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowPosition(200, 200);
 	glutInitWindowSize(600, 600);
-	glutCreateWindow("OpenGL Pierwszy Program");
+	glutCreateWindow("CG PROJ X");
 	glewInit();
 
 	init();

@@ -137,7 +137,7 @@ GLuint normalVAO;
 
 float frustumScale = 1.f;
 std::list<waterTile> waterTiles;
-static const int NUM_ROCKS = 20;
+static const int NUM_ROCKS = 100;
 glm::vec3 rockPositions[NUM_ROCKS];
 glm::vec3 seaWeedPositions[NUM_ROCKS];
 
@@ -153,11 +153,13 @@ GLuint defaultVBO;
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
-	float moveSpeed = 0.1f * 10;
+	float moveSpeedXZ = 0.1f * 10;
+	float moveSpeedY = 0.1f * 5;
 
-	const float xAndYBoundary = 150.0f;
-	const float zTopBoundary = 0.9f;
-	const float zBottomBoundary = -35.0f;
+
+	const float xAndZBoundary = 150.0f;
+	const float yTopBoundary = 0.0f;
+	const float yBottomBoundary = -35.0f;
 	glm::vec3 nextStep;
 
 
@@ -172,9 +174,9 @@ void keyboard(unsigned char key, int x, int y)
 		break;
 
 	case 'w': //forward
-		nextStep = cameraPos + cameraDir * moveSpeed;
+		nextStep = cameraPos + cameraDir * moveSpeedXZ;
 
-		if (abs(abs(nextStep.z)) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+		if (abs(abs(nextStep.z)) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -182,9 +184,9 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		}
 	case 's': //back
-		nextStep = cameraPos - cameraDir * moveSpeed;
+		nextStep = cameraPos - cameraDir * moveSpeedXZ;
 
-		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -192,9 +194,9 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		}
 	case 'd': //right
-		nextStep = cameraPos + glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed;
+		nextStep = cameraPos + glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
-		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -202,9 +204,9 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		}
 	case 'a': //left
-		nextStep = cameraPos - glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeed;
+		nextStep = cameraPos - glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
-		if (abs(nextStep.z) <= xAndYBoundary && abs(nextStep.x) <= xAndYBoundary) {
+		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -213,16 +215,16 @@ void keyboard(unsigned char key, int x, int y)
 		}
 
 	case 'e': //up
-		if (cameraPos.y <= zTopBoundary) {
-			cameraPos += glm::vec3(0, 1, 0) * moveSpeed;
+		if (cameraPos.y <= yTopBoundary) {
+			cameraPos += glm::vec3(0, 1, 0) * moveSpeedY;
 			break;
 		}
 		else {
 			break;
 		}
 	case 'q': //down
-		if (cameraPos.y >= zBottomBoundary) {
-			cameraPos -= glm::vec3(0, 1, 0) * moveSpeed;
+		if (cameraPos.y >= yBottomBoundary) {
+			cameraPos -= glm::vec3(0, 1, 0) * moveSpeedY;
 			break;
 		}
 		else {
@@ -497,23 +499,23 @@ void init()
 		switch (i % 4)
 		{
 		case 0: // pos x, pos y
-			rockPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-45.0f), rand() % 100 + 0);
-			seaWeedPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-40.0f), rand() % 100 + 0);
+			rockPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 + 0);
+			seaWeedPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 + 0);
 
 			break;
 		case 1: // neg x, pos y
-			rockPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-45.0f), rand() % 100 + 0);
-			seaWeedPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-40.0f), rand() % 100 + 0);
+			rockPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + 0);
+			seaWeedPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + 0);
 
 			break;
 		case 2: //pos x, neg y
-			rockPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-45.0f), rand() % 100 - 100);
-			seaWeedPositions[i] = glm::vec3(rand() % 100 + 0, rand() % 10 + (-40.0f), rand() % 100 - 100);
+			rockPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 - 100);
+			seaWeedPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 - 100);
 
 			break;
 		case 3: // neg x, neg y
-			rockPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-45.0f), rand() % 100 + -100);
-			seaWeedPositions[i] = glm::vec3(rand() % 100 + -100, rand() % 10 + (-40.0f), rand() % 100 + -100);
+			rockPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + -100);
+			seaWeedPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + -100);
 
 			break;
 		}

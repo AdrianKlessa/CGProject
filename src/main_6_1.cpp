@@ -91,13 +91,6 @@ float skyboxVertices[] = {
 	-1.0f, -1.0f, 1.0f,
 	1.0f, -1.0f, 1.0f};
 
-std::vector<std::string> cubeFaces = {"textures/skybox/exp/right.png",
-									  "textures/skybox/exp/left.png",
-									  "textures/skybox/exp/top.png",
-									  "textures/skybox/exp/bottom.png",
-									  "textures/skybox/exp/front.png",
-									  "textures/skybox/exp/back.png"};
-
 std::vector<std::string> cubeFaces = { "textures/skybox/exp/right.png",
 										"textures/skybox/exp/left.png",
 										"textures/skybox/exp/top.png",

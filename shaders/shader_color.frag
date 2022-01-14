@@ -6,6 +6,7 @@ uniform vec3 cameraPos;
 
 in vec3 interpNormal;
 in vec3 fragPos;
+in float visibility;
 
 void main()
 {
@@ -23,5 +24,8 @@ void main()
 	vec3 shadedColor = objectColor * diffuse + lightColor * specular;
 	
 	float ambient = 0.2;
-	gl_FragColor = vec4(mix(objectColor, shadedColor, 1.0 - ambient), 1.0);
+	// gl_FragColor = vec4(mix(objectColor, shadedColor, 1.0 - ambient), 1.0);
+
+	//fog setup
+	gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), objectColor, visibility), 1.0);
 }

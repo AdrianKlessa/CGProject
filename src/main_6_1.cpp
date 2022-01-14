@@ -98,6 +98,13 @@ std::vector<std::string> cubeFaces = {"textures/skybox/exp/right.png",
 									  "textures/skybox/exp/front.png",
 									  "textures/skybox/exp/back.png"};
 
+std::vector<std::string> cubeFaces = { "textures/skybox/exp/right.png",
+										"textures/skybox/exp/left.png",
+										"textures/skybox/exp/top.png",
+										"textures/skybox/exp/bottom.png",
+										"textures/skybox/exp/front.png",
+										"textures/skybox/exp/back.png" };
+
 GLuint programColor;
 GLuint programTexture;
 GLuint programWater;
@@ -163,6 +170,7 @@ void keyboard(unsigned char key, int x, int y)
 	float moveSpeedXZ = 0.1f * 100;
 	float moveSpeedY = 0.1f * 30;
 
+
 	const float xAndZBoundary = 10000.0f;
 	const float yTopBoundary = 60.0f;
 	const float yBottomBoundary = -30.0f;
@@ -180,8 +188,7 @@ void keyboard(unsigned char key, int x, int y)
 	case 'w': //forward
 		nextStep = cameraPos + cameraDir * moveSpeedXZ;
 
-		if (abs(abs(nextStep.z)) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary)
-		{
+		if (abs(abs(nextStep.z)) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -192,8 +199,7 @@ void keyboard(unsigned char key, int x, int y)
 	case 's': //back
 		nextStep = cameraPos - cameraDir * moveSpeedXZ;
 
-		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary)
-		{
+		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -204,8 +210,7 @@ void keyboard(unsigned char key, int x, int y)
 	case 'd': //right
 		nextStep = cameraPos + glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
-		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary)
-		{
+		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -216,8 +221,7 @@ void keyboard(unsigned char key, int x, int y)
 	case 'a': //left
 		nextStep = cameraPos - glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
-		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary)
-		{
+		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
 			cameraPos = nextStep;
 			break;
 		}
@@ -227,8 +231,7 @@ void keyboard(unsigned char key, int x, int y)
 		}
 
 	case 'e': //up
-		if (cameraPos.y <= yTopBoundary)
-		{
+		if (cameraPos.y <= yTopBoundary) {
 			cameraPos += glm::vec3(0, 1, 0) * moveSpeedY;
 			break;
 		}
@@ -237,8 +240,7 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		}
 	case 'q': //down
-		if (cameraPos.y >= yBottomBoundary)
-		{
+		if (cameraPos.y >= yBottomBoundary) {
 			cameraPos -= glm::vec3(0, 1, 0) * moveSpeedY;
 			break;
 		}
@@ -265,8 +267,10 @@ void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 	glm::mat4 transformation = perspectiveMatrix * cameraMatrix * modelMatrix;
 	glm::mat4 modelViewMatrix = cameraMatrix * modelMatrix;
 
-	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewProjectionMatrix"), 1, GL_FALSE, (float *)&transformation);
-	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_FALSE, (float *)&transformation);
+	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewProjectionMatrix"), 1, GL_FALSE, (float*)&transformation);
+	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_FALSE, (float*)&transformation);
+
+	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float *)&modelMatrix);
 }
@@ -358,9 +362,10 @@ void drawWater(std::list<waterTile> water, glm::mat4 cameraMatrix, glm::mat4 per
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
 	setUpUniformsWater(cameraMatrix, perspectiveMatrix);
 
-	float vertices[] = {-1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1};
+	float vertices[] = { -1, -1, -1, 1, 1, -1, 1, -1, -1, 1, 1, 1 };
 	glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, vertices);
 	glEnableVertexAttribArray(2);
 
@@ -428,7 +433,7 @@ void renderScene()
 	// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
 	//  Jest to mozliwe dzieki temu, ze macierze widoku i rzutowania sa takie same dla wszystkich obiektow!)
 	cameraMatrix = createCameraMatrix();
-	perspectiveMatrix = Core::createPerspectiveMatrix(1.f, 5000.f, frustumScale);
+	perspectiveMatrix = Core::createPerspectiveMatrix(0.01f, 5000.f, frustumScale);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
@@ -443,19 +448,19 @@ void renderScene()
 	// drawing rocks and seaweed
 	for (int i = 0; i < NUM_ROCKS; i++)
 	{
-		switch (i % 2)
-		{
-		case 0:
-			drawObjectColor(&rockModel1, glm::translate(rockPositions[i])	// put at places from the preinitialized arrray with rand coords
-											 * glm::scale(glm::vec3(3.0f)), // scale 3x
-							glm::vec3(0.3, 0.3, 0.3));						// color
-			break;
-		case 1:
-			drawObjectColor(&rockModel2, glm::translate(rockPositions[i])	// put at places from the preinitialized arrray with rand coords
-											 * glm::scale(glm::vec3(3.0f)), // scale 3x
-							glm::vec3(0.3, 0.3, 0.3));						// color
-			break;
+		switch (i % 2) {
+			case 0:
+				drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
+					* glm::scale(glm::vec3(3.0f)), // scale 3x
+					glm::vec3(0.3, 0.3, 0.3)); // color
+				break;
+			case 1:
+				drawObjectColor(&rockModel2, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
+					* glm::scale(glm::vec3(3.0f)), // scale 3x
+					glm::vec3(0.3, 0.3, 0.3)); // color
+				break;
 		}
+		
 
 		drawObjectColor(&seaWeedModel1, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
 											* glm::scale(glm::vec3(3.0f)),	// scale 3x
@@ -471,8 +476,8 @@ void renderScene()
 
 	// draw terrain
 	drawObjectTextureNM(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(2.f)),
-						textureTerrain,
-						normalTerrain);
+		textureTerrain,
+		normalTerrain);
 
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 	//drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
@@ -491,6 +496,7 @@ void init()
 	programTexture = shaderLoader.CreateProgram("shaders/shader_tex.vert", "shaders/shader_tex.frag");
 	programWater = shaderLoader.CreateProgram("shaders/shader_water.vert", "shaders/shader_water.frag");
 	programSkybox = shaderLoader.CreateProgram("shaders/shader_skybox.vert", "shaders/shader_skybox.frag");
+
 	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
 

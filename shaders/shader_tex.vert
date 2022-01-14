@@ -7,7 +7,9 @@ layout(location = 3) in vec3 vertexTangent;
 layout(location = 4) in vec3 vertexBitangent;
 
 uniform mat4 modelViewProjectionMatrix;
+uniform mat4 modelViewMatrix;
 uniform mat4 modelMatrix;
+
 uniform vec3 lightDir;
 uniform vec3 cameraPos;	
 uniform vec4 plane;
@@ -16,17 +18,18 @@ uniform vec4 plane;
 out vec2 interpTexCoord;
 out vec3 lightDirTS;
 out vec3 viewDirTS;
+out float visibility;
+
+const float density = 0.007;
+const float gradient = 1.5;
 
 
 void main()
-{
-	
+{	
 	vec3 vertPos;
 
-
-
 	gl_Position = modelViewProjectionMatrix * vec4(vertexPosition, 1.0);
-	vertPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz;
+	vertPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz; //poss with the submarine
 
 	vec4 worldPosition = modelMatrix*vec4(vertexPosition,1.0);
 	gl_ClipDistance[0]=dot(worldPosition,plane);
@@ -39,9 +42,11 @@ void main()
 	lightDirTS = TBN*lightDir;
 	viewDirTS = TBN*viewDir;
 
-
-
 	//interpNormal = (modelMatrix * vec4(vertexNormal, 0.0)).xyz;
-
 	interpTexCoord = vertexTexCoord;
+
+    // fog setup
+	float dist = distance(cameraPos.xyz, worldPosition.xyz);
+	visibility = exp(-pow((dist * density), gradient));
+	visibility = clamp(visibility, 0.0, 1.0);
 }

@@ -11,6 +11,7 @@ in vec3 fragPos;
 in vec3 lightDirTS;
 in vec3 viewDirTS;
 
+in float visibility;
 
 void main()
 {
@@ -35,5 +36,9 @@ void main()
 	
 	float ambient = 0.2;
 
-	gl_FragColor = vec4(mix(color, shadedColor, 1.0 - ambient), 1.0);
+	// gl_FragColor = vec4(mix(color, shadedColor, 1.0 - ambient), 1.0);
+
+	//fog setup
+	gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), color, visibility), 1.0);
+
 }

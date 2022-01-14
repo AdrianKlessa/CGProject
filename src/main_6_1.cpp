@@ -88,7 +88,12 @@ float skyboxVertices[] = {
 };
 
 
-std::vector<std::string> cubeFaces = { "textures/skybox/right.png","textures/skybox/left.png","textures/skybox/top.png","textures/skybox/bottom.png","textures/skybox/back.png","textures/skybox/front.png" };
+std::vector<std::string> cubeFaces = { "textures/skybox/exp/right.png",
+										"textures/skybox/exp/left.png",
+										"textures/skybox/exp/top.png",
+										"textures/skybox/exp/bottom.png",
+										"textures/skybox/exp/front.png",
+										"textures/skybox/exp/back.png" };
 
 GLuint programColor;
 GLuint programTexture;
@@ -104,6 +109,7 @@ obj::Model sphereModel;
 obj::Model hamSharkModel;
 obj::Model terrainModel;
 obj::Model rockModel1;
+obj::Model rockModel2;
 obj::Model seaWeedModel1;
 
 
@@ -153,13 +159,13 @@ GLuint defaultVBO;
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
-	float moveSpeedXZ = 0.1f * 10;
-	float moveSpeedY = 0.1f * 5;
+	float moveSpeedXZ = 0.1f * 100;
+	float moveSpeedY = 0.1f * 30;
 
 
-	const float xAndZBoundary = 150.0f;
-	const float yTopBoundary = 0.0f;
-	const float yBottomBoundary = -35.0f;
+	const float xAndZBoundary = 10000.0f;
+	const float yTopBoundary = 60.0f;
+	const float yBottomBoundary = -30.0f;
 	glm::vec3 nextStep;
 
 
@@ -248,7 +254,11 @@ void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 	glUniform3f(glGetUniformLocation(program, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
 	glm::mat4 transformation = perspectiveMatrix * cameraMatrix * modelMatrix;
+	glm::mat4 modelViewMatrix = cameraMatrix * modelMatrix;
+
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewProjectionMatrix"), 1, GL_FALSE, (float*)&transformation);
+	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_FALSE, (float*)&transformation);
+
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 
 }
@@ -408,7 +418,7 @@ void renderScene()
 	// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
 	//  Jest to mozliwe dzieki temu, ze macierze widoku i rzutowania sa takie same dla wszystkich obiektow!)
 	cameraMatrix = createCameraMatrix();
-	perspectiveMatrix = Core::createPerspectiveMatrix(0.1f, 100.f, frustumScale);
+	perspectiveMatrix = Core::createPerspectiveMatrix(1.f, 5000.f, frustumScale);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
@@ -422,14 +432,24 @@ void renderScene()
 	drawObjectTextureNM(&shipModel, shipModelMatrix, textureShip, normalShip);
 
 	// drawing EARTH
-	drawObjectTextureNM(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
+	//drawObjectTextureNM(&sphereModel, glm::translate(glm::vec3(0, 0, 0)), textureEarth, normalEarth);
 
 	// drawing rocks and seaweed
 	for (int i = 0; i < NUM_ROCKS; i++)
 	{
-		drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
-			* glm::scale(glm::vec3(3.0f)), // scale 3x
-			glm::vec3(0.3, 0.3, 0.3)); // color
+		switch (i % 2) {
+			case 0:
+				drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
+					* glm::scale(glm::vec3(3.0f)), // scale 3x
+					glm::vec3(0.3, 0.3, 0.3)); // color
+				break;
+			case 1:
+				drawObjectColor(&rockModel2, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
+					* glm::scale(glm::vec3(3.0f)), // scale 3x
+					glm::vec3(0.3, 0.3, 0.3)); // color
+				break;
+		}
+		
 
 		drawObjectColor(&seaWeedModel1, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
 			* glm::scale(glm::vec3(3.0f)), // scale 3x
@@ -445,12 +465,12 @@ void renderScene()
 		glm::vec3(0.5, 0.6, 0.3)); //color
 
 	// draw terrain
-	drawObjectTextureNM(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(0.5f)),
+	drawObjectTextureNM(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(2.f)),
 		textureTerrain,
 		normalTerrain);
 
 	drawSkybox(cameraMatrix, perspectiveMatrix);
-	drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
+	//drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
 
 	glutSwapBuffers();
 }
@@ -476,6 +496,8 @@ void init()
 	hamSharkModel = obj::loadModelFromFile("models/hamShark.obj");
 	terrainModel = obj::loadModelFromFile("models/terrain.obj");
 	rockModel1 = obj::loadModelFromFile("models/bunch/SM_Big_Rock_02.obj");
+	rockModel2 = obj::loadModelFromFile("models/bunch/SM_Rock_04.obj");
+
 	seaWeedModel1 = obj::loadModelFromFile("models/seaweed1.obj");
 
 	textureShip = Core::LoadTexture("textures/submarine.png");
@@ -496,26 +518,29 @@ void init()
 	// generating rand rock positons and putting them to an array
 	for (int i = 0; i < NUM_ROCKS; i++)
 	{
+
+		const int spreadMeasure = 1000;
+
 		switch (i % 4)
 		{
 		case 0: // pos x, pos y
-			rockPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 + 0);
-			seaWeedPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 + 0);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure + 0, rand() % 10 + (-45.0f), rand() % spreadMeasure + 0);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + 0, rand() % 10 + (-42.0f), rand() % spreadMeasure + 0);
 
 			break;
 		case 1: // neg x, pos y
-			rockPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + 0);
-			seaWeedPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + 0);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure + -spreadMeasure, rand() % 10 + (-45.0f), rand() % spreadMeasure + 0);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + -spreadMeasure, rand() % 10 + (-42.0f), rand() % spreadMeasure + 0);
 
 			break;
 		case 2: //pos x, neg y
-			rockPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 - 100);
-			seaWeedPositions[i] = glm::vec3(rand() % 300 + 0, rand() % 10 + (-45.0f), rand() % 300 - 100);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure + 0, rand() % 10 + (-45.0f), rand() % spreadMeasure - spreadMeasure);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + 0, rand() % 10 + (-42.0f), rand() % spreadMeasure - spreadMeasure);
 
 			break;
 		case 3: // neg x, neg y
-			rockPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + -100);
-			seaWeedPositions[i] = glm::vec3(rand() % 300 + -100, rand() % 10 + (-45.0f), rand() % 300 + -100);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure + -spreadMeasure, rand() % 10 + (-45.0f), rand() % spreadMeasure + -spreadMeasure);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + -spreadMeasure, rand() % 10 + (-42.0f), rand() % spreadMeasure + -spreadMeasure);
 
 			break;
 		}

@@ -264,8 +264,6 @@ void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_FALSE, (float*)&transformation);
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
-
-	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float *)&modelMatrix);
 }
 
 void setUpUniformsWater(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix)

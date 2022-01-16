@@ -14,6 +14,8 @@
 #include <string>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "Physics.h"
+
 
 class waterTile
 {
@@ -114,6 +116,8 @@ obj::Model terrainModel;
 obj::Model rockModel1;
 obj::Model rockModel2;
 obj::Model seaWeedModel1;
+obj::Model boxModel;
+
 
 float cameraAngle = glm::radians(-90.f);
 glm::vec3 cameraPos = glm::vec3(0, 0, 5);
@@ -128,6 +132,7 @@ GLuint textureEarth;
 GLuint textureAsteroid;
 GLuint textureShip;
 GLuint textureTerrain;
+
 
 GLuint normalTest;
 GLuint normalEarth;
@@ -157,6 +162,26 @@ GLuint skyboxTexture;
 
 GLuint defaultVAO;
 GLuint defaultVBO;
+
+
+//Physics stuff
+GLuint textureBox, textureGround;
+glm::mat4 boxModelMatrix;
+
+
+// Initalization of physical scene (PhysX)
+Physics pxScene(9.8f /* gravity (m/s^2) */);
+
+// fixed timestep for stable and deterministic simulation
+const double physicsStepTime = 1.f / 60.f;
+double physicsTimeToProcess = 0;
+
+// physical objects
+PxRigidStatic* planeBody = nullptr;
+PxMaterial* planeMaterial = nullptr;
+PxRigidDynamic* boxBody = nullptr;
+PxMaterial* boxMaterial = nullptr;
+
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
@@ -250,6 +275,38 @@ glm::mat4 createCameraMatrix()
 	glm::vec3 up = glm::vec3(0, 1, 0);
 
 	return Core::createViewMatrix(cameraPos, cameraDir, up);
+}
+
+void updateTransforms()
+{
+	// Here we retrieve the current transforms of the objects from the physical simulation.
+	auto actorFlags = PxActorTypeFlag::eRIGID_DYNAMIC | PxActorTypeFlag::eRIGID_STATIC;
+	PxU32 nbActors = pxScene.scene->getNbActors(actorFlags);
+	if (nbActors)
+	{
+		std::vector<PxRigidActor*> actors(nbActors);
+		pxScene.scene->getActors(actorFlags, (PxActor**)&actors[0], nbActors);
+		for (auto actor : actors)
+		{
+			// We use the userData of the objects to set up the proper model matrices.
+			if (!actor->userData) continue;
+			glm::mat4* modelMatrix = (glm::mat4*)actor->userData;
+
+			// get world matrix of the object (actor)
+			PxMat44 transform = actor->getGlobalPose();
+			auto& c0 = transform.column0;
+			auto& c1 = transform.column1;
+			auto& c2 = transform.column2;
+			auto& c3 = transform.column3;
+
+			// set up the model matrix used for the rendering
+			*modelMatrix = glm::mat4(
+				c0.x, c0.y, c0.z, c0.w,
+				c1.x, c1.y, c1.z, c1.w,
+				c2.x, c2.y, c2.z, c2.w,
+				c3.x, c3.y, c3.z, c3.w);
+		}
+	}
 }
 
 void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
@@ -412,6 +469,26 @@ void renderScene()
 	int v3 = (time_int + 1) % NUM_CAMERA_POINTS;
 	int v4 = (time_int + 2) % NUM_CAMERA_POINTS;
 
+
+	//Physics
+	static double prevTime = time;
+	double dtime = time - prevTime;
+	prevTime = time;
+
+	if (dtime < 1.f) {
+		physicsTimeToProcess += dtime;
+		while (physicsTimeToProcess > 0) {
+			// here we perform the physics simulation step
+			pxScene.step(physicsStepTime);
+			physicsTimeToProcess -= physicsStepTime;
+		}
+	}
+
+
+
+	updateTransforms();
+
+
 	// opcjonalny ruch swiatla do testow
 	bool animateLight = false;
 	if (animateLight)
@@ -470,10 +547,32 @@ void renderScene()
 		textureTerrain,
 		normalTerrain);
 
+	//Draw physics objects
+	drawObjectTexture(&planeModel, glm::rotate(glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f)), textureGround);
+	drawObjectTexture(&boxModel, boxModelMatrix, textureBox); // boxModelMatrix was updated in updateTransforms()
+
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 	//drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
 
 	glutSwapBuffers();
+}
+
+void initPhysics() {
+	planeBody = pxScene.physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(0, 1, 0, 0)));
+	planeMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
+	PxShape* planeShape = pxScene.physics->createShape(PxPlaneGeometry(), *planeMaterial);
+	planeBody->attachShape(*planeShape);
+	planeShape->release();
+	planeBody->userData = NULL;
+	pxScene.scene->addActor(*planeBody);
+
+	boxBody = pxScene.physics->createRigidDynamic(PxTransform(0, 5, 0));
+	boxMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
+	PxShape* boxShape = pxScene.physics->createShape(PxBoxGeometry(1, 1, 1), *boxMaterial);
+	boxBody->attachShape(*boxShape);
+	boxShape->release();
+	boxBody->userData = &boxModelMatrix;
+	pxScene.scene->addActor(*boxBody);
 }
 
 void init()
@@ -495,14 +594,18 @@ void init()
 	terrainModel = obj::loadModelFromFile("models/terrain.obj");
 	rockModel1 = obj::loadModelFromFile("models/bunch/SM_Big_Rock_02.obj");
 	rockModel2 = obj::loadModelFromFile("models/bunch/SM_Rock_04.obj");
-
 	seaWeedModel1 = obj::loadModelFromFile("models/seaweed1.obj");
+	boxModel = obj::loadModelFromFile("models/box.obj");
+	planeModel= obj::loadModelFromFile("models/plane.obj");
+
 
 	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
 	textureAsteroid = Core::LoadTexture("textures/asteroid.png");
 	textureTest = Core::LoadTexture("textures/test.png");
 	textureTerrain = Core::LoadTexture("textures/terrain/diffuse.png");
+	textureBox = Core::LoadTexture("textures/sand.png");
+	textureGround = Core::LoadTexture("textures/a.png");
 
 	normalShip = Core::LoadTexture("textures/Submarine_normals.png");
 	normalEarth = Core::LoadTexture("textures/earth2_normals.png");
@@ -511,7 +614,7 @@ void init()
 	normalTerrain = Core::LoadTexture("textures/terrain/hight.png");
 
 	loadSkybox();
-
+	initPhysics();
 	// generating rand rock positons and putting them to an array
 	for (int i = 0; i < NUM_ROCKS; i++)
 	{
@@ -553,6 +656,8 @@ void init()
 	}
 	appLoadingTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 }
+
+
 
 void shutdown()
 {

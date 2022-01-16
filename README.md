@@ -10,10 +10,7 @@ How to run:
 
 To add (mandatory):
 - moving fish
-- sea plants
 - air bubbles (could be added as particles?)
-- fog
-- terrain
 
 
 Current issues:

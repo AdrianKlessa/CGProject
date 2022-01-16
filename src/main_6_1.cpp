@@ -49,6 +49,8 @@ public:
 	}
 };
 
+
+
 float skyboxVertices[] = {
 	// positions
 	-1.0f, 1.0f, -1.0f,
@@ -150,6 +152,7 @@ GLuint normalVAO;
 float frustumScale = 1.f;
 std::list<waterTile> waterTiles;
 static const int NUM_ROCKS = 100;
+static const int NUM_MINES = 100;
 glm::vec3 rockPositions[NUM_ROCKS];
 glm::vec3 seaWeedPositions[NUM_ROCKS];
 
@@ -162,8 +165,8 @@ GLuint skyboxTexture;
 
 GLuint defaultVAO;
 GLuint defaultVBO;
-
-
+class mine;
+std::list<mine> mineList;
 //Physics stuff
 GLuint textureBox, textureGround;
 glm::mat4 boxModelMatrix;
@@ -181,6 +184,47 @@ PxRigidStatic* planeBody = nullptr;
 PxMaterial* planeMaterial = nullptr;
 PxRigidDynamic* boxBody = nullptr;
 PxMaterial* boxMaterial = nullptr;
+
+class mine
+{
+private:
+	glm::mat4 modelMatrix;
+	PxRigidDynamic* body = nullptr;
+	
+	PxMaterial* material = nullptr;
+public:
+	glm::mat4 getModelMatrix() {
+		return this->modelMatrix;
+	}
+	void transform(glm::mat4 transformMatrix) {
+		this->modelMatrix = transformMatrix * (this->modelMatrix);
+	}
+	mine(float x, float y, float z) {
+		//modelMatrix = glm::translate(glm::mat4(), glm::vec3(x, y, z));
+		body = pxScene.physics->createRigidDynamic(PxTransform(x, y, z));
+		material = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
+		PxShape* shape = nullptr;
+		shape = pxScene.physics->createShape(PxBoxGeometry(1, 1, 1), *material);
+		body->attachShape(*shape);
+		shape->release();
+		body->userData = &this->modelMatrix;
+		pxScene.scene->addActor(*body);
+		/*
+		boxBody = pxScene.physics->createRigidDynamic(PxTransform(0, 100, 0));
+		boxMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
+		PxShape* boxShape = pxScene.physics->createShape(PxBoxGeometry(1, 1, 1), *boxMaterial);
+		boxBody->attachShape(*boxShape);
+		boxShape->release();
+		boxBody->userData = &boxModelMatrix;
+		pxScene.scene->addActor(*boxBody);
+		*/
+	}
+};
+
+
+void addMine(glm::vec3 coords) {
+	mineList.push_back(mine(coords.x, coords.y, coords.z));
+}
 
 void keyboard(unsigned char key, int x, int y)
 {
@@ -550,6 +594,9 @@ void renderScene()
 	//Draw physics objects
 	drawObjectTexture(&planeModel, glm::rotate(glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f)), textureGround);
 	drawObjectTexture(&boxModel, boxModelMatrix, textureBox); // boxModelMatrix was updated in updateTransforms()
+	for (mine& mine : mineList) {
+		drawObjectTexture(&boxModel, mine.getModelMatrix(), textureBox);
+	}
 
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 	//drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
@@ -566,7 +613,7 @@ void initPhysics() {
 	planeBody->userData = NULL;
 	pxScene.scene->addActor(*planeBody);
 
-	boxBody = pxScene.physics->createRigidDynamic(PxTransform(0, 5, 0));
+	boxBody = pxScene.physics->createRigidDynamic(PxTransform(0, 100, 0));
 	boxMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
 	PxShape* boxShape = pxScene.physics->createShape(PxBoxGeometry(1, 1, 1), *boxMaterial);
 	boxBody->attachShape(*boxShape);
@@ -645,6 +692,31 @@ void init()
 			break;
 		}
 	}
+
+
+	//Adding some mines
+	for (int i = 0; i < NUM_MINES; i++)
+	{
+
+		const int spreadMeasure = 1000;
+
+		switch (i % 4)
+		{
+		case 0: // pos x, pos y
+			addMine(glm::vec3(rand() % spreadMeasure + 0, 100, rand() % spreadMeasure + 0));
+			break;
+		case 1: // neg x, pos y
+			addMine(glm::vec3(rand() % spreadMeasure + -spreadMeasure, 100, rand() % spreadMeasure + 0));
+			break;
+		case 2: //pos x, neg y
+			addMine(glm::vec3(rand() % spreadMeasure + 0, 100, rand() % spreadMeasure - spreadMeasure));
+			break;
+		case 3: // neg x, neg y
+			addMine(glm::vec3(rand() % spreadMeasure + -spreadMeasure, 100, rand() % spreadMeasure + -spreadMeasure));
+			break;
+		}
+	}
+
 
 	static const float camRadius = 3.55;
 	static const float camOffset = 0.6;

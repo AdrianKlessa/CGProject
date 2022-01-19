@@ -170,7 +170,8 @@ GLuint defaultVBO;
 GLuint textureBox, textureGround;
 std::vector <glm::mat4> boxModelMatrices(NUM_MINES);
 std::vector <std::tuple<PxRigidDynamic*, PxMaterial*, PxShape*>> boxes;
-
+std::vector <double> timeCreated(NUM_MINES);
+float current_time;
 // Initalization of physical scene (PhysX)
 Physics pxScene(2.8f /* gravity (m/s^2) */);
 
@@ -182,6 +183,7 @@ double physicsTimeToProcess = 0;
 PxRigidStatic* planeBody = nullptr;
 PxMaterial* planeMaterial = nullptr;
 
+double box_lifetime = 5.0f; //after this time a new box spawns (with some element of randomness)
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
@@ -366,12 +368,13 @@ void drawSkybox(glm::mat4 viewMatrix, glm::mat4 projectionMatrix)
 	glEnable(GL_DEPTH_CLAMP);
 	glUseProgram(programSkybox);
 
+	glm::mat4 modelMatrix = glm::mat4(1.0f);
 	glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, skyboxVertices);
 	glEnableVertexAttribArray(0);
 	glm::mat4 view = glm::mat4(glm::mat3(viewMatrix));
 	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "projection"), 1, GL_FALSE, (float *)&projectionMatrix);
 	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "view"), 1, GL_FALSE, (float *)&view);
-
+	glUniformMatrix4fv(glGetUniformLocation(programSkybox, "view"), 1, GL_FALSE, (float*)&modelMatrix);
 	glUniform1i(glGetUniformLocation(programSkybox, "skybox"), 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
@@ -478,17 +481,80 @@ void updateTransforms()
 	}
 }
 
+//Respawns a mine at a given index
+void renewMine(int i) {
+
+	PxMaterial* mat = pxScene.physics->createMaterial(0.2, 0.01, 0.7);
+
+		int rand_value = rand() % 19;
+		boxes[i]=(std::make_tuple(pxScene.physics->createRigidDynamic(PxTransform((2 * (rand_value + 1)) * (rand() % 20 + -10),
+			20,
+			(2 * (rand_value + 1)) * (rand() % 20 + -10))),
+			mat,
+			pxScene.physics->createShape(PxBoxGeometry(1 + 1 * rand_value, 1 + 1 * rand_value, 1 + 1 * rand_value),
+				*mat)));
+
+		std::get<0>(boxes[i])->attachShape(*std::get<2>(boxes[i]));
+		std::get<2>(boxes[i])->release();
+		std::get<0>(boxes[i])->userData = &boxModelMatrices[i];
+		timeCreated[i]=current_time;
+
+		pxScene.scene->addActor(*std::get<0>(boxes[i]));
+	
+}
+
+void updateMines() {
+	/*
+	if ((time - last_spawn_time) > box_spawn_interval) {
+		last_spawn_time = time;
+		spawnRandomMine();
+	}
+	*/
+	int random_margin = 5; //How much randomness in the lifetime of the boxes we want
+	//Added this so that not all boxes disappear at the same time
+
+	for (int i = 0; i < NUM_MINES; i++)
+	{
+		if ((current_time - timeCreated[i]) > (box_lifetime+rand()%random_margin)) {
+			if (rand() % 3 == 0) {
+				timeCreated[i] -= 1;
+				continue;
+			}
+			pxScene.scene->removeActor(*std::get<0>(boxes[i]));
+			
+			//boxModelMatrices.erase(boxModelMatrices.begin() + i);
+			//boxes.erase(boxes.begin() + i);
+			//timeCreated.erase(timeCreated.begin() + i);
+			renewMine(i);
+		
+		}
+
+	}
+
+}
+
 void renderScene()
 {
 	//data for hammer shark movement
-	float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - appLoadingTime;
-
+	current_time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - appLoadingTime;
+	float time = current_time;
 	int time_int = floorf(time);
 	int v1 = (time_int - 1) % NUM_CAMERA_POINTS;
 	int v2 = time_int % NUM_CAMERA_POINTS;
 	int v3 = (time_int + 1) % NUM_CAMERA_POINTS;
 	int v4 = (time_int + 2) % NUM_CAMERA_POINTS;
 
+
+	//Spawning new boxes and removing old ones
+	updateMines();
+
+
+	//Draw physics objects
+	for (size_t i = 0; i < NUM_MINES; i++)
+	{
+		drawObjectTexture(&boxModel, boxModelMatrices[i], textureBox); // boxModelMatrix was updated in updateTransforms()
+
+	}
 
 	//Physics
 	static double prevTime = time;
@@ -503,6 +569,7 @@ void renderScene()
 			physicsTimeToProcess -= physicsStepTime;
 		}
 	}
+	
 
 
 	updateTransforms();

@@ -184,6 +184,7 @@ PxRigidStatic* planeBody = nullptr;
 PxMaterial* planeMaterial = nullptr;
 
 double box_lifetime = 5.0f; //after this time a new box spawns (with some element of randomness)
+double explosion_distance = 5.0f; //How far away the mine is from the player when it triggers
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
@@ -502,8 +503,11 @@ void renewMine(int i) {
 		pxScene.scene->addActor(*std::get<0>(boxes[i]));
 	
 }
+glm::vec3 positionFromModelMatrix(glm::mat4 modelMatrix) {
+	return glm::vec3(modelMatrix[3][0], modelMatrix[3][1], modelMatrix[3][2]);
+}
 
-void updateMines() {
+void updateMines(glm::mat4 shipModelMatrix) {
 	/*
 	if ((time - last_spawn_time) > box_spawn_interval) {
 		last_spawn_time = time;
@@ -512,9 +516,20 @@ void updateMines() {
 	*/
 	int random_margin = 5; //How much randomness in the lifetime of the boxes we want
 	//Added this so that not all boxes disappear at the same time
-
+	
+	glm::vec3 shipPos = positionFromModelMatrix(shipModelMatrix);
+	glm::mat4 currentMatrix; //model matrix of the current box
+	glm::vec3 boxPos; //Position of the current box
+	double distance; //Distance from the submarine to the box
 	for (int i = 0; i < NUM_MINES; i++)
 	{
+		currentMatrix = boxModelMatrices[i];
+		boxPos = positionFromModelMatrix(currentMatrix);
+		distance = glm::distance(shipPos, boxPos);
+		if (distance <= explosion_distance) {
+			std::cout << "The player exploded \n";
+			//TODO: add the actual explosion 
+		}
 		if ((current_time - timeCreated[i]) > (box_lifetime+rand()%random_margin)) {
 			if (rand() % 3 == 0) {
 				timeCreated[i] -= 1;
@@ -546,7 +561,14 @@ void renderScene()
 
 
 	//Spawning new boxes and removing old ones
-	updateMines();
+	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0))
+		* glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0))
+		* glm::scale(glm::vec3(0.07f))
+		* glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f))
+		* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f))
+		* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
+	//shipModelMatrix must be here for distance calculations
+	updateMines(shipModelMatrix);
 
 
 	//Draw physics objects
@@ -593,12 +615,7 @@ void renderScene()
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 
 	// drawing ship model
-	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0))
-								* glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0))
-								* glm::scale(glm::vec3(0.07f))
-								* glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) 
-								* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) 
-								* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
+	
 	drawObjectTextureNM(&shipModel, shipModelMatrix, textureShip, normalShip);
 
 	// drawing EARTH

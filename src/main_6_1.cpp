@@ -152,7 +152,7 @@ GLuint normalVAO;
 float frustumScale = 1.f;
 std::list<waterTile> waterTiles;
 static const int NUM_ROCKS = 100;
-static const int NUM_MINES = 100;
+static const int NUM_MINES = 20;
 glm::vec3 rockPositions[NUM_ROCKS];
 glm::vec3 seaWeedPositions[NUM_ROCKS];
 
@@ -165,15 +165,14 @@ GLuint skyboxTexture;
 
 GLuint defaultVAO;
 GLuint defaultVBO;
-class mine;
-std::list<mine> mineList;
+
 //Physics stuff
 GLuint textureBox, textureGround;
-glm::mat4 boxModelMatrix;
-
+std::vector <glm::mat4> boxModelMatrices(NUM_MINES);
+std::vector <std::tuple<PxRigidDynamic*, PxMaterial*, PxShape*>> boxes;
 
 // Initalization of physical scene (PhysX)
-Physics pxScene(9.8f /* gravity (m/s^2) */);
+Physics pxScene(2.8f /* gravity (m/s^2) */);
 
 // fixed timestep for stable and deterministic simulation
 const double physicsStepTime = 1.f / 60.f;
@@ -182,54 +181,11 @@ double physicsTimeToProcess = 0;
 // physical objects
 PxRigidStatic* planeBody = nullptr;
 PxMaterial* planeMaterial = nullptr;
-PxRigidDynamic* boxBody = nullptr;
-PxMaterial* boxMaterial = nullptr;
-
-class mine
-{
-private:
-	glm::mat4 modelMatrix;
-	PxRigidDynamic* body = nullptr;
-	
-	PxMaterial* material = nullptr;
-public:
-	glm::mat4 getModelMatrix() {
-		return this->modelMatrix;
-	}
-	void transform(glm::mat4 transformMatrix) {
-		this->modelMatrix = transformMatrix * (this->modelMatrix);
-	}
-	mine(float x, float y, float z) {
-		//modelMatrix = glm::translate(glm::mat4(), glm::vec3(x, y, z));
-		body = pxScene.physics->createRigidDynamic(PxTransform(x, y, z));
-		material = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
-		PxShape* shape = nullptr;
-		shape = pxScene.physics->createShape(PxBoxGeometry(1, 1, 1), *material);
-		body->attachShape(*shape);
-		shape->release();
-		body->userData = &this->modelMatrix;
-		pxScene.scene->addActor(*body);
-		/*
-		boxBody = pxScene.physics->createRigidDynamic(PxTransform(0, 100, 0));
-		boxMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
-		PxShape* boxShape = pxScene.physics->createShape(PxBoxGeometry(1, 1, 1), *boxMaterial);
-		boxBody->attachShape(*boxShape);
-		boxShape->release();
-		boxBody->userData = &boxModelMatrix;
-		pxScene.scene->addActor(*boxBody);
-		*/
-	}
-};
-
-
-void addMine(glm::vec3 coords) {
-	mineList.push_back(mine(coords.x, coords.y, coords.z));
-}
 
 void keyboard(unsigned char key, int x, int y)
 {
 	float angleSpeed = 0.1f;
-	float moveSpeedXZ = 0.1f * 100;
+	float moveSpeedXZ = 0.1f * 30;
 	float moveSpeedY = 0.1f * 30;
 
 
@@ -240,14 +196,21 @@ void keyboard(unsigned char key, int x, int y)
 
 	switch (key)
 	{
-	case 'z': // turn left
+	case 'z':
+	case 'Z':
+	case 'ÿ':
+	case 'ß': // turn left
 		cameraAngle -= angleSpeed;
 		break;
-	case 'x': // turn right
+	case 'x':
+	case 'X':
+	case '÷':
+	case '×': // turn right
 		cameraAngle += angleSpeed;
 		break;
 
-	case 'w': //forward
+	case 'w': 
+	case 'W': //forward
 		nextStep = cameraPos + cameraDir * moveSpeedXZ;
 
 		if (abs(abs(nextStep.z)) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
@@ -258,7 +221,8 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-	case 's': //back
+	case 's':
+	case 'S': //back
 		nextStep = cameraPos - cameraDir * moveSpeedXZ;
 
 		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
@@ -269,7 +233,8 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-	case 'd': //right
+	case 'd':
+	case 'D': //right
 		nextStep = cameraPos + glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
 		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
@@ -280,7 +245,8 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-	case 'a': //left
+	case 'a':
+	case 'A': //left
 		nextStep = cameraPos - glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
 		if (abs(nextStep.z) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
@@ -292,7 +258,8 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		}
 
-	case 'e': //up
+	case 'e':
+	case 'E': //up
 		if (cameraPos.y <= yTopBoundary) {
 			cameraPos += glm::vec3(0, 1, 0) * moveSpeedY;
 			break;
@@ -301,7 +268,8 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-	case 'q': //down
+	case 'q':
+	case 'Q': //down
 		if (cameraPos.y >= yBottomBoundary) {
 			cameraPos -= glm::vec3(0, 1, 0) * moveSpeedY;
 			break;
@@ -319,38 +287,6 @@ glm::mat4 createCameraMatrix()
 	glm::vec3 up = glm::vec3(0, 1, 0);
 
 	return Core::createViewMatrix(cameraPos, cameraDir, up);
-}
-
-void updateTransforms()
-{
-	// Here we retrieve the current transforms of the objects from the physical simulation.
-	auto actorFlags = PxActorTypeFlag::eRIGID_DYNAMIC | PxActorTypeFlag::eRIGID_STATIC;
-	PxU32 nbActors = pxScene.scene->getNbActors(actorFlags);
-	if (nbActors)
-	{
-		std::vector<PxRigidActor*> actors(nbActors);
-		pxScene.scene->getActors(actorFlags, (PxActor**)&actors[0], nbActors);
-		for (auto actor : actors)
-		{
-			// We use the userData of the objects to set up the proper model matrices.
-			if (!actor->userData) continue;
-			glm::mat4* modelMatrix = (glm::mat4*)actor->userData;
-
-			// get world matrix of the object (actor)
-			PxMat44 transform = actor->getGlobalPose();
-			auto& c0 = transform.column0;
-			auto& c1 = transform.column1;
-			auto& c2 = transform.column2;
-			auto& c3 = transform.column3;
-
-			// set up the model matrix used for the rendering
-			*modelMatrix = glm::mat4(
-				c0.x, c0.y, c0.z, c0.w,
-				c1.x, c1.y, c1.z, c1.w,
-				c2.x, c2.y, c2.z, c2.w,
-				c3.x, c3.y, c3.z, c3.w);
-		}
-	}
 }
 
 void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
@@ -502,6 +438,46 @@ void loadSkybox()
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 }
 
+void updateTransforms()
+{
+	// Here we retrieve the current transforms of the objects from the physical simulation.
+	auto actorFlags = PxActorTypeFlag::eRIGID_DYNAMIC | PxActorTypeFlag::eRIGID_STATIC;
+	PxU32 nbActors = pxScene.scene->getNbActors(actorFlags);
+	if (nbActors)
+	{
+		std::vector<PxRigidActor*> actors(nbActors);
+		pxScene.scene->getActors(actorFlags, (PxActor**)&actors[0], nbActors);
+		for (auto actor : actors)
+		{
+			// We use the userData of the objects to set up the proper model matrices.
+			if (!actor->userData)
+			{
+				continue;
+			}
+			else {
+
+				glm::mat4* modelMatrix = (glm::mat4*)actor->userData;
+
+				// get world matrix of the object (actor)
+				PxMat44 transform = actor->getGlobalPose();
+				auto& c0 = transform.column0;
+				auto& c1 = transform.column1;
+				auto& c2 = transform.column2;
+				auto& c3 = transform.column3;
+
+				// set up the model matrix used for the rendering
+				*modelMatrix = glm::mat4(
+					c0.x, c0.y, c0.z, c0.w,
+					c1.x, c1.y, c1.z, c1.w,
+					c2.x, c2.y, c2.z, c2.w,
+					c3.x, c3.y, c3.z, c3.w);
+
+				//std::cout << modelMatrix;
+			}
+		}
+	}
+}
+
 void renderScene()
 {
 	//data for hammer shark movement
@@ -529,7 +505,6 @@ void renderScene()
 	}
 
 
-
 	updateTransforms();
 
 
@@ -551,7 +526,12 @@ void renderScene()
 	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 
 	// drawing ship model
-	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0)) * glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0)) * glm::scale(glm::vec3(0.07f)) * glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) * glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
+	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0))
+								* glm::rotate(-cameraAngle + glm::radians(90.0f), glm::vec3(0, 1, 0))
+								* glm::scale(glm::vec3(0.07f))
+								* glm::rotate(glm::radians(90.0f), glm::vec3(1.f, 0.0f, 0.f)) 
+								* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 1.0f, 0.f)) 
+								* glm::rotate(glm::radians(180.0f), glm::vec3(0.f, 0.0f, 1.f));
 	drawObjectTextureNM(&shipModel, shipModelMatrix, textureShip, normalShip);
 
 	// drawing EARTH
@@ -592,20 +572,19 @@ void renderScene()
 		normalTerrain);
 
 	//Draw physics objects
-	drawObjectTexture(&planeModel, glm::rotate(glm::radians(90.f), glm::vec3(0.f, 0.f, 1.f)), textureGround);
-	drawObjectTexture(&boxModel, boxModelMatrix, textureBox); // boxModelMatrix was updated in updateTransforms()
-	for (mine& mine : mineList) {
-		drawObjectTexture(&boxModel, mine.getModelMatrix(), textureBox);
+	for (size_t i = 0; i < NUM_MINES; i++)
+	{
+		drawObjectTexture(&boxModel, boxModelMatrices[i], textureBox); // boxModelMatrix was updated in updateTransforms()
+
 	}
 
 	drawSkybox(cameraMatrix, perspectiveMatrix);
-	//drawWater(waterTiles, cameraMatrix, perspectiveMatrix);
 
 	glutSwapBuffers();
 }
 
 void initPhysics() {
-	planeBody = pxScene.physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(0, 1, 0, 0)));
+	planeBody = pxScene.physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(0, 0.07, 0, 2)));
 	planeMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
 	PxShape* planeShape = pxScene.physics->createShape(PxPlaneGeometry(), *planeMaterial);
 	planeBody->attachShape(*planeShape);
@@ -613,13 +592,24 @@ void initPhysics() {
 	planeBody->userData = NULL;
 	pxScene.scene->addActor(*planeBody);
 
-	boxBody = pxScene.physics->createRigidDynamic(PxTransform(0, 100, 0));
-	boxMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
-	PxShape* boxShape = pxScene.physics->createShape(PxBoxGeometry(1, 1, 1), *boxMaterial);
-	boxBody->attachShape(*boxShape);
-	boxShape->release();
-	boxBody->userData = &boxModelMatrix;
-	pxScene.scene->addActor(*boxBody);
+
+	PxMaterial* mat = pxScene.physics->createMaterial(0.2, 0.01, 0.7);
+	for (int i = 0; i < NUM_MINES; i++)
+	{
+		boxes.push_back(std::make_tuple(pxScene.physics->createRigidDynamic(PxTransform((2 * (i + 1)) * (rand() % 20 + -10),
+																						20,
+																						(2 * (i + 1)) * (rand() % 20 + -10))),
+										mat,
+										pxScene.physics->createShape(PxBoxGeometry(1 + 1 * i, 1 + 1 * i, 1 + 1 * i),
+																				   *mat)));
+
+		std::get<0>(boxes[i])->attachShape(*std::get<2>(boxes[i]));
+		std::get<2>(boxes[i])->release();
+		std::get<0>(boxes[i])->userData = &boxModelMatrices[i];
+
+
+		pxScene.scene->addActor(*std::get<0>(boxes[i]));
+	}
 }
 
 void init()
@@ -651,7 +641,7 @@ void init()
 	textureAsteroid = Core::LoadTexture("textures/asteroid.png");
 	textureTest = Core::LoadTexture("textures/test.png");
 	textureTerrain = Core::LoadTexture("textures/terrain/diffuse.png");
-	textureBox = Core::LoadTexture("textures/sand.png");
+	textureBox = Core::LoadTexture("textures/a.png");
 	textureGround = Core::LoadTexture("textures/a.png");
 
 	normalShip = Core::LoadTexture("textures/Submarine_normals.png");
@@ -692,31 +682,6 @@ void init()
 			break;
 		}
 	}
-
-
-	//Adding some mines
-	for (int i = 0; i < NUM_MINES; i++)
-	{
-
-		const int spreadMeasure = 1000;
-
-		switch (i % 4)
-		{
-		case 0: // pos x, pos y
-			addMine(glm::vec3(rand() % spreadMeasure + 0, 100, rand() % spreadMeasure + 0));
-			break;
-		case 1: // neg x, pos y
-			addMine(glm::vec3(rand() % spreadMeasure + -spreadMeasure, 100, rand() % spreadMeasure + 0));
-			break;
-		case 2: //pos x, neg y
-			addMine(glm::vec3(rand() % spreadMeasure + 0, 100, rand() % spreadMeasure - spreadMeasure));
-			break;
-		case 3: // neg x, neg y
-			addMine(glm::vec3(rand() % spreadMeasure + -spreadMeasure, 100, rand() % spreadMeasure + -spreadMeasure));
-			break;
-		}
-	}
-
 
 	static const float camRadius = 3.55;
 	static const float camOffset = 0.6;

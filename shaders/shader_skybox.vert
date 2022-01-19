@@ -19,7 +19,7 @@ void main()
 
     TexCoords = aPos;
     vec4 pos = projection * view * vec4(aPos, 1.0);
-    gl_Position = apos.xyzz;
+    gl_Position = aPos.xyzz;
     
     
     // fog setup

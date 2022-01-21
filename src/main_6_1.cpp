@@ -86,6 +86,7 @@ obj::Model rockModel1;
 obj::Model rockModel2;
 obj::Model seaWeedModel1;
 obj::Model boxModel;
+obj::Model mineModel;
 
 // camera stuff
 float cameraAngle = glm::radians(-90.f);
@@ -102,6 +103,7 @@ GLuint textureEarth;
 GLuint textureAsteroid;
 GLuint textureShip;
 GLuint textureTerrain;
+GLuint textureMine;
 
 // vars for normals
 GLuint normalTest;
@@ -109,6 +111,7 @@ GLuint normalEarth;
 GLuint normalAsteroid;
 GLuint normalShip;
 GLuint normalTerrain;
+GLuint normalMine;
 
 GLuint normalVBO;
 GLuint normalVAO;
@@ -438,7 +441,7 @@ void renewMine(int i, glm::vec3 shipPos) {
 		20,
 		shipPos.z + (rand() % 40 + -20))),
 		mat,
-		pxScene.physics->createShape(PxBoxGeometry(1, 1, 1),
+		pxScene.physics->createShape(PxSphereGeometry(1),
 			*mat)));
 	std::cout << shipPos.x << "  " << shipPos.z << "\n";
 
@@ -589,7 +592,8 @@ void renderScene()
 	// draw mines
 	for (size_t i = 0; i < NUM_MINES; i++)
 	{
-		drawObjectTexture(&boxModel, boxModelMatrices[i], textureBox); // boxModelMatrix was updated in updateTransforms()
+		drawObjectTextureNM(&mineModel, boxModelMatrices[i], textureMine, normalMine); // boxModelMatrix was updated in updateTransforms()
+
 
 	}
 
@@ -621,7 +625,7 @@ void initPhysics() {
 			20,
 			(2 * (i + 1)) * (rand() % 20 + -10))),
 			mat,
-			pxScene.physics->createShape(PxBoxGeometry(1, 1, 1),
+			pxScene.physics->createShape(PxSphereGeometry(1),
 				*mat)));
 
 		std::get<0>(boxes[i])->attachShape(*std::get<2>(boxes[i]));
@@ -653,7 +657,7 @@ void init()
 	seaWeedModel1 = obj::loadModelFromFile("models/seaweed1.obj");
 	boxModel = obj::loadModelFromFile("models/box.obj");
 	planeModel = obj::loadModelFromFile("models/plane.obj");
-
+	mineModel = obj::loadModelFromFile("models/mine.obj");
 	// textures
 	textureShip = Core::LoadTexture("textures/submarine.png");
 	textureEarth = Core::LoadTexture("textures/earth2.png");
@@ -662,6 +666,7 @@ void init()
 	textureTerrain = Core::LoadTexture("textures/terrain/diffuse.png");
 	textureBox = Core::LoadTexture("textures/a.png");
 	textureGround = Core::LoadTexture("textures/a.png");
+	textureMine = Core::LoadTexture("textures/mine_texture.png");
 
 	// normals
 	normalShip = Core::LoadTexture("textures/Submarine_normals.png");
@@ -669,6 +674,7 @@ void init()
 	normalAsteroid = Core::LoadTexture("textures/asteroid_normals.png");
 	normalTest = Core::LoadTexture("textures/test_normals.png");
 	normalTerrain = Core::LoadTexture("textures/terrain/hight.png");
+	normalMine = Core::LoadTexture("textures/mine_normals.png");
 
 	loadSkybox();
 	initPhysics();

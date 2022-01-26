@@ -40,11 +40,15 @@ void main()
 	
 	float ambient = 0.2;
     
-	float theta = dot(V, normalize(-cameraDir));
+	vec3 light_direction = normalize(cameraPos - fragPos);
+	vec3 spotDir = cameraDir;
+
+	
+	float theta = dot(light_direction, normalize(-cameraDir));
     float epsilon = (cutOff - cutOffOut);
     float intensity = clamp((theta - cutOffOut) / epsilon, 0.0, 1.0);
 
 	//fog setup
-	gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), color, visibility * intensity), 1.0);
+	gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), color, visibility*intensity), 1.0);
 
 }

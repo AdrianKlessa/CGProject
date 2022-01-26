@@ -294,7 +294,7 @@ void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 
 	glUniform3f(glGetUniformLocation(program, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 	glUniform1f(glGetUniformLocation(program, "cutOff"), glm::cos(glm::radians(12.5f)));
-	glUniform1f(glGetUniformLocation(program, "cutOffOut"), glm::cos(glm::radians(12.5f)));
+	glUniform1f(glGetUniformLocation(program, "cutOffOut"), glm::cos(glm::radians(17.5f)));
 
 
 	glm::mat4 transformation = perspectiveMatrix * cameraMatrix * modelMatrix;

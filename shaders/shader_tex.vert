@@ -26,10 +26,9 @@ const float gradient = 1.5;
 
 void main()
 {	
-	vec3 vertPos;
 
 	gl_Position = modelViewProjectionMatrix * vec4(vertexPosition, 1.0);
-	vertPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz; //poss with the submarine
+	vec3 vertPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz; //poss with the submarine
 
 	vec4 worldPosition = modelMatrix*vec4(vertexPosition,1.0);
 	gl_ClipDistance[0]=dot(worldPosition,plane);

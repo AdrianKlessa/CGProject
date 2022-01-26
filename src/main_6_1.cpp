@@ -81,6 +81,8 @@ obj::Model planeModel;
 obj::Model shipModel;
 obj::Model sphereModel;
 obj::Model hamSharkModel;
+obj::Model megalodonModel;
+
 obj::Model terrainModel;
 obj::Model rockModel1;
 obj::Model rockModel2;
@@ -106,6 +108,7 @@ GLuint textureAsteroid;
 GLuint textureShip;
 GLuint textureTerrain;
 GLuint textureMine;
+GLuint textureMegalodon;
 
 // vars for normals
 GLuint normalTest;
@@ -114,6 +117,7 @@ GLuint normalAsteroid;
 GLuint normalShip;
 GLuint normalTerrain;
 GLuint normalMine;
+GLuint normalMegalodon;
 
 GLuint normalVBO;
 GLuint normalVAO;
@@ -125,7 +129,7 @@ std::vector <glm::vec3> rockPositions(NUM_ROCKS);
 std::vector <glm::vec3> seaWeedPositions(NUM_ROCKS);
 
 const int NUM_CAMERA_POINTS = 10;
-glm::vec3 cameraKeyPoints[NUM_CAMERA_POINTS];
+glm::vec3 cameraKeyPoints[NUM_ROCKS];
 
 GLuint skyboxVAO;
 GLuint skyboxVBO;
@@ -503,40 +507,82 @@ void generateFaunaPos(glm::vec3 submarinepPos) {
 	for (int i = 0; i < NUM_ROCKS; i++)
 	{
 		int spreadMeasure = 160;
+		int lowestSeaWeedY = -40.f;
+		int lowestRockY = -42.f;
+		int alterZ = 0;
+		int alterX = 0;
 
 		switch (i % 4)
 		{
 		case 0: // pos x, pos z
-			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x,
-												rand() % 10 + (-42.0f),
-												+rand() % spreadMeasure + submarinepPos.z);
-			rockPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x,
-											rand() % 10 + (-45.0f),
-											+rand() % spreadMeasure + submarinepPos.z);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x + alterX,
+												rand() % 10 + (lowestSeaWeedY),
+												+rand() % spreadMeasure + submarinepPos.z + alterZ);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x + alterX,
+											rand() % 10 + (lowestRockY),
+											+rand() % spreadMeasure + submarinepPos.z + alterZ);
 			break;
 		case 1: //pos x, neg z
-			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x,
-												rand() % 10 + (-42.0f),
-												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z);
-			rockPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x,
-												rand() % 10 + (-45.0f),
-												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x + alterX,
+												rand() % 10 + (lowestSeaWeedY),
+												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z + alterZ);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure + submarinepPos.x + alterX,
+												rand() % 10 + (lowestRockY),
+												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z + alterZ);
 			break;
 		case 2: //neg x, neg z
-			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x,
-												rand() % 10 + (-42.0f),
-												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z);
-			rockPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x,
-												rand() % 10 + (-45.0f),
-												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x + alterX,
+												rand() % 10 + (lowestSeaWeedY),
+												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z + alterZ);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x + alterX,
+												rand() % 10 + (lowestRockY),
+												+rand() % spreadMeasure - spreadMeasure + submarinepPos.z + alterZ);
 			break;
 		case 3: //neg x, pos z
-			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x,
-												rand() % 10 + (-42.0f),
-												+rand() % spreadMeasure + submarinepPos.z);
-			rockPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x,
-												rand() % 10 + (-45.0f),
-												+rand() % spreadMeasure + submarinepPos.z);
+			seaWeedPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x + alterX,
+												rand() % 10 + (lowestSeaWeedY),
+												+rand() % spreadMeasure + submarinepPos.z + alterZ);
+			rockPositions[i] = glm::vec3(rand() % spreadMeasure - spreadMeasure + submarinepPos.x + alterX,
+												rand() % 10 + (lowestRockY),
+												+rand() % spreadMeasure + submarinepPos.z + alterZ);
+			break;
+		}
+	}
+}
+
+void drawFauna() {
+
+	// drawing rocks and seaweed
+	for (int i = 0; i < NUM_ROCKS; i++)
+	{
+		switch (i % 2) {
+		case 0:
+			drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
+				* glm::scale(glm::vec3(3.0f)), // scale 3x
+				glm::vec3(0.3, 0.3, 0.3)); // color
+			break;
+		case 1:
+			drawObjectColor(&rockModel2, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
+				* glm::scale(glm::vec3(3.0f)), // scale 3x
+				glm::vec3(0.3, 0.3, 0.3));	// color
+			break;
+		}
+
+		switch (i % 3) {
+		case 0:
+			drawObjectColor(&seaWeedModel3, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
+				* glm::scale(glm::vec3(3.0f)), // scale 3x
+				glm::vec3(0.7, 0.1, 0.3)); //color
+			break;
+		case 1:
+			drawObjectColor(&seaWeedModel2, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
+				* glm::scale(glm::vec3(3.0f)), // scale 3x
+				glm::vec3(0.2, 0.8, 0.7)); //color
+			break;
+		case 2:
+			drawObjectColor(&seaWeedModel1, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
+				* glm::scale(glm::vec3(3.0f)), // scale 3x
+				glm::vec3(0.5, 0.8, 0.3)); //color
 			break;
 		}
 	}
@@ -547,45 +593,13 @@ void updateFauna(glm::mat4 shipModelMatrix) {
 	int threshold = 110;
 
 	if (abs(prevSubmarinePos.x - newSubmarinePos.x) >= threshold ||
-		abs(prevSubmarinePos.z - newSubmarinePos.z) >= threshold
-		/*newSubmarinePos == initSubmarinePos*/)
+		abs(prevSubmarinePos.z - newSubmarinePos.z) >= threshold)
 	{
+		//generateFaunaPos(prevSubmarinePos);
+		//drawFauna();
+
 		generateFaunaPos(newSubmarinePos);
-
-		// drawing rocks and seaweed
-		for (int i = 0; i < NUM_ROCKS; i++)
-		{
-			switch (i % 2) {
-			case 0:
-				drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
-					* glm::scale(glm::vec3(3.0f)), // scale 3x
-					glm::vec3(0.3, 0.3, 0.3)); // color
-				break;
-			case 1:
-				drawObjectColor(&rockModel2, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
-					* glm::scale(glm::vec3(3.0f)), // scale 3x
-					glm::vec3(0.3, 0.3, 0.3));	// color
-				break;
-			}
-
-			switch (i % 3) {
-			case 0:
-				drawObjectColor(&seaWeedModel3, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
-					* glm::scale(glm::vec3(3.0f)), // scale 3x
-					glm::vec3(0.7, 0.1, 0.3)); //color
-				break;
-			case 1:
-				drawObjectColor(&seaWeedModel2, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
-					* glm::scale(glm::vec3(3.0f)), // scale 3x
-					glm::vec3(0.2, 0.8, 0.7)); //color
-				break;
-			case 2:
-				drawObjectColor(&seaWeedModel1, glm::translate(seaWeedPositions[i]) // put at places from the preinitialized arrray with rand coords
-				* glm::scale(glm::vec3(3.0f)), // scale 3x
-				glm::vec3(0.5, 0.8, 0.3)); //color
-				break;
-			}
-		}
+		drawFauna();
 
 		prevSubmarinePos = newSubmarinePos;
 	}
@@ -684,11 +698,14 @@ void renderScene()
 	updateFauna(shipModelMatrix);
 
 	// drawing hammer shark
-	//drawObjectColor(&hamSharkModel, glm::translate(glm::catmullRom(cameraKeyPoints[v1], cameraKeyPoints[v2], cameraKeyPoints[v3], cameraKeyPoints[v4], time - time_int)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) //init pos
-	//	* glm::rotate(glm::radians(-90.0f), glm::vec3(0, 0, 1))																																	 //init pos
-	//	* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 0, 1))																															 //follow forward
-	//	* glm::scale(glm::vec3(0.01f)),																																							 //make small
-	//	glm::vec3(0.5, 0.6, 0.3));																																													 //color
+	//drawObjectColor(&hamSharkModel, glm::translate(glm::catmullRom(rockPositions[v1], rockPositions[v2], rockPositions[v3], rockPositions[v4], (time - time_int) ))
+	//								* glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) //init pos
+	//								* glm::rotate(glm::radians(-90.0f), glm::vec3(0, 0, 1)) //init pos
+	//								* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 0, 1)) //follow forward
+	//								* glm::scale(glm::vec3(0.1f)), //make small
+	//								glm::vec3(0.5, 0.6, 0.3)); //color
+
+	//drawObjectTextureNM(&megalodonModel, glm::translate(glm::vec3(0, 0, 0)), textureMegalodon, normalMegalodon);
 
 	// draw terrain
 	drawObjectTextureNM(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(2.f)),
@@ -714,7 +731,7 @@ void renderScene()
 }
 
 void initPhysics() {
-
+	
 	// create initial plane for physics objects
 	planeBody = pxScene.physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(0, 0.07, 0, 2)));
 	planeMaterial = pxScene.physics->createMaterial(0.5, 0.5, 0.6);
@@ -758,6 +775,7 @@ void init()
 	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
 	hamSharkModel = obj::loadModelFromFile("models/hamShark.obj");
+	//megalodonModel = obj::loadModelFromFile("models/vurdalak_low.obj"); //
 	terrainModel = obj::loadModelFromFile("models/terrain.obj");
 	rockModel1 = obj::loadModelFromFile("models/bunch/SM_Big_Rock_02.obj");
 	rockModel2 = obj::loadModelFromFile("models/bunch/SM_Rock_04.obj");
@@ -777,6 +795,7 @@ void init()
 	textureBox = Core::LoadTexture("textures/a.png");
 	textureGround = Core::LoadTexture("textures/a.png");
 	textureMine = Core::LoadTexture("textures/mine_texture.png");
+	//textureMegalodon = Core::LoadTexture("models/vurdalak_Roughness.png"); //
 
 	// normals
 	normalShip = Core::LoadTexture("textures/Submarine_normals.png");
@@ -785,6 +804,7 @@ void init()
 	normalTest = Core::LoadTexture("textures/test_normals.png");
 	normalTerrain = Core::LoadTexture("textures/terrain/hight.png");
 	normalMine = Core::LoadTexture("textures/mine_normals.png");
+	//normalMegalodon = Core::LoadTexture("models/vurdalak_Normal_OpenGL.png"); //
 
 	loadSkybox();
 	initPhysics();

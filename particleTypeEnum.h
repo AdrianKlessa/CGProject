@@ -1,0 +1,2 @@
+#pragma once
+enum particleType { PARTICLE_BUBBLE, PARTICLE_EXPLOSION, PARTICLE_STUFF_FLOATING};

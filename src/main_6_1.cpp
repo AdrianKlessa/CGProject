@@ -15,6 +15,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "Physics.h"
+#include "ParticleSystem.h"
 
 float skyboxVertices[] = {
 	// positions
@@ -763,6 +764,8 @@ void initPhysics() {
 
 void init()
 {
+	ParticleSystem.init();
+	srand(static_cast <unsigned> (time(0))); //Initializing random number generation
 	glEnable(GL_DEPTH_TEST);
 
 	// programs

@@ -14,9 +14,9 @@ in float visibility;
 void main()
 {
 	
-	vec3 color = texture2D(textureSampler, interpTexCoord).rgb;
+	vec4 color = texture2D(textureSampler, interpTexCoord).rgba;
 
-	
+	gl_FragColor = color;
 	//fog setup
-	gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), color, visibility), opacity);
+	//gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), color, visibility), opacity);
 }

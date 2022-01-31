@@ -1,4 +1,6 @@
 #pragma once
+#include "Random.h"
+#include <cstdlib>
 class Random
 
 {

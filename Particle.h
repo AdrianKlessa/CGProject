@@ -1,16 +1,17 @@
 #pragma once
+#include "glm.hpp"
 class Particle
 {
 private:
-	glm::vec3 position;
 	glm::vec3 velocity;
 	float gravity;
-	float lifeLength;
-	float lifeLeft;
-	float rotation;
-	float scale;
 
 public:
+	glm::vec3 position;
+	float rotation;
+	float lifeLength;
+	float lifeLeft;
+	float scale;
 	//Returns whether the particle is still alive after the update
 	bool update(double deltaTime);
 

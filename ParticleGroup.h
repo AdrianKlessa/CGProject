@@ -1,6 +1,15 @@
 #pragma once
-
-#include "ParticleTypeEnum.h"
+#include "particleTypeEnum.h"
+#include "glm.hpp"
+#include <list>
+#include "Particle.h"
+#include "Random.h"
+#include "glew.h"
+#include "freeglut.h"
+#include "src/Shader_Loader.h"
+#include "src/Render_Utils.h"
+#include "src/Texture.h"
+#include <ext.hpp>
 class ParticleGroup
 {
 private:
@@ -22,5 +31,7 @@ public:
 
 	void emitParticle(glm::vec3 center);
 	void update(double deltaTime);
+	void explode();
+	void renderParticles(GLuint program, glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix);
 };
 

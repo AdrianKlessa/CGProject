@@ -4,21 +4,17 @@
 #include <list>
 #include "Particle.h"
 #include "Random.h"
+#include "ParticleSystem.h"
+#include "glew.h"
+#include "freeglut.h"
+#include "src/Shader_Loader.h"
+#include "src/Render_Utils.h"
+#include "src/Texture.h"
+#include <ext.hpp>
 
 
-class ParticleGroup {
-private:
-	float particlePerSecond; //How many are created per second
-	float speed; //The initial speed of the particles
-	float gravityStrength; //How much gravity affects the particles
-	float lifeLength; //Lifetime of the particles
-	 
 
-public:
-
-	std::list<Particle> particleList;
-	particleType type; //The type of the particle (used for choosing the texture)
-	ParticleGroup(float particlePerSecond, float speed, float gravityStrength, float lifeLength, particleType type) {
+	ParticleGroup::ParticleGroup(float particlePerSecond, float speed, float gravityStrength, float lifeLength, particleType type) {
 		this->particlePerSecond = particlePerSecond;
 		this->speed = speed;
 		this->gravityStrength = gravityStrength;
@@ -28,34 +24,92 @@ public:
 
 	//The center is where the particles will be created
 	//To be called every frame
-	void generateParticles(glm::vec3 center, double deltaTime) {
+	void ParticleGroup::generateParticles(glm::vec3 center, double deltaTime) {
 		float particlesToCreate = particlePerSecond * deltaTime;
 		int count = std::floor(particlesToCreate);
 		float partialParticles = particlesToCreate -count;
+		std::cout << "Generating...";
 		for (int i = 0; i < count; i++) {
 			emitParticle(center);
+			std::cout << "Generated particle\n";
 		}
 		
 		if (Random::Float(0, 1) < partialParticles) {
 			emitParticle(center);
+			std::cout << "Generated particle\n";
 		}
 	}
 
-	void emitParticle(glm::vec3 center) {
+	void ParticleGroup::emitParticle(glm::vec3 center) {
 		float dirX = Random::Float(-1, 1);
 		float dirZ = Random::Float(-1, 1);
 		glm::vec3 velocity = glm::vec3(dirX, 1, dirZ);
 		velocity = glm::normalize(velocity);
 		velocity *= speed;
 		//glm::vec3 pos, glm::vec3 vel, float gravForce, float lifetime, float rotation, float scale
-		Particle newParticle = Particle(center, velocity, gravityStrength, lifeLength, 0.0, 1.0);
+		Particle newParticle = Particle(center, velocity, gravityStrength, lifeLength, 0.0, 0.2);
 		particleList.push_back(newParticle);
+		std::cout << "\n Size of particle list on addition: " << particleList.size() <<"\n";
+		std::cout<<(this);
 	}
 
-	void update(double deltaTime) {
-		for (auto& particle : particleList) {
-			particle.update(deltaTime);
+	void ParticleGroup::update(double deltaTime) {
+
+		std::list<Particle>::iterator i = particleList.begin();
+		while (i != particleList.end()) {
+
+			bool alive = i->update(deltaTime);
+			if (!alive) {
+				i = particleList.erase(i);
+			}
+			else {
+				i++;
+			}
 		}
+
+
+		/*
+		for (auto& particle : particleList.) {
+			bool alive=particle.update(deltaTime);
+
+			if (!alive) {
+
+			}
+		}
+		*/
+	}
+
+	void ParticleGroup::explode() {
+
 	}
 	
-};
+	void ParticleGroup::renderParticles(GLuint program, glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix) {
+		
+		glm::mat4 modelMatrix; 
+		glUniformMatrix4fv(glGetUniformLocation(program, "perspectiveMatrix"), 1, GL_FALSE, (float*)&perspectiveMatrix);
+		glUniformMatrix4fv(glGetUniformLocation(program, "cameraMatrix"), 1, GL_FALSE, (float*)&cameraMatrix);
+		
+		std::cout << "Render function\n";
+		std::cout << "\n Size of particle list on rendering: " << particleList.size() << "\n";
+		for (auto& particle : this->particleList) {
+			std::cout << "Rendering particle\n";
+			modelMatrix = glm::translate(particle.position);
+			modelMatrix[0][0] = cameraMatrix[0][0];
+			modelMatrix[0][1] = cameraMatrix[1][0];
+			modelMatrix[0][2] = cameraMatrix[2][0];
+			modelMatrix[1][0] = cameraMatrix[0][1];
+			modelMatrix[1][1] = cameraMatrix[1][1];
+			modelMatrix[1][2] = cameraMatrix[2][1];
+			modelMatrix[2][0] = cameraMatrix[0][2];
+			modelMatrix[2][1] = cameraMatrix[1][2];
+			modelMatrix[2][2] = cameraMatrix[2][2];
+			modelMatrix*= glm::rotate(glm::radians(particle.rotation), glm::vec3(0, 0, 1));
+			modelMatrix *= glm::scale(glm::vec3(particle.scale));
+			glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
+			float opacity = particle.lifeLeft / particle.lifeLength;
+			glUniform1f(glGetUniformLocation(program, "opacity"),opacity);
+			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		}
+
+	}
+

@@ -1,15 +1,12 @@
 #include "Random.h"
 #include <cstdlib>
-class Random
 
-{
-public:
-	static void Init() {
+
+	void Random::Init() {
 
 	}
 
-	static float Float(float from, float to) {
+	float Random::Float(float from, float to) {
 		return (from + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (to - from))));
 	}
 
-};

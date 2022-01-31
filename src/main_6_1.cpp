@@ -15,8 +15,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "Physics.h"
-#include "ParticleSystem.h"
-
+#include "..\ParticleSystem.h"
+#include "..\ParticleGroup.h"
 float skyboxVertices[] = {
 	// positions
 	-1.0f, 1.0f, -1.0f,
@@ -163,6 +163,10 @@ const double explosionDistance = 5.0f; // how far away the mine is from the play
 glm::vec3 initSubmarinePos;
 glm::vec3 prevSubmarinePos;
 glm::vec3 newSubmarinePos;
+
+
+//float particlePerSecond, float speed, float gravityStrength, float lifeLength, particleType type
+ParticleGroup engineParticles = ParticleGroup(20, 2, -0.3, 15, particleType::PARTICLE_BUBBLE);
 
 void keyboard(unsigned char key, int x, int y)
 {
@@ -608,6 +612,8 @@ void updateFauna(glm::mat4 shipModelMatrix) {
 
 void renderScene()
 {
+
+
 	//data for hammer shark movement
 	current_time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - appLoadingTime;
 	float time = current_time;
@@ -648,6 +654,9 @@ void renderScene()
 			physicsTimeToProcess -= physicsStepTime;
 		}
 	}
+
+	ParticleSystem::update(dtime);
+	
 
 	// submarine matrix
 	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0))
@@ -727,8 +736,12 @@ void renderScene()
 	// draw a sky box
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 
+	//Drawing particles (has to be put after 3D stuff)
+	engineParticles.generateParticles(positionFromModelMatrix(shipModelMatrix), dtime);
+	ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix);
 
 	glutSwapBuffers();
+
 }
 
 void initPhysics() {
@@ -764,7 +777,8 @@ void initPhysics() {
 
 void init()
 {
-	ParticleSystem.init();
+	ParticleSystem::init();
+	ParticleSystem::addGroup(engineParticles);
 	srand(static_cast <unsigned> (time(0))); //Initializing random number generation
 	glEnable(GL_DEPTH_TEST);
 

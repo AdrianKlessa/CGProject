@@ -19,6 +19,7 @@ out vec2 interpTexCoord;
 out vec3 lightDirTS;
 out vec3 viewDirTS;
 out float visibility;
+out vec3 fragPos ;
 
 const float density = 0.007;
 const float gradient = 1.5;
@@ -26,11 +27,10 @@ const float gradient = 1.5;
 
 void main()
 {	
-	vec3 vertPos;
 
 	gl_Position = modelViewProjectionMatrix * vec4(vertexPosition, 1.0);
-	vertPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz; //poss with the submarine
-
+	vec3 vertPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz; //poss with the submarine
+	fragPos = (modelMatrix * vec4(vertexPosition, 1.0)).xyz;
 	vec4 worldPosition = modelMatrix*vec4(vertexPosition,1.0);
 	gl_ClipDistance[0]=dot(worldPosition,plane);
 

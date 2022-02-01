@@ -8,6 +8,10 @@ in vec3 interpNormal;
 in vec3 fragPos;
 in float visibility;
 
+uniform float cutOff;
+uniform float cutOffOut;
+uniform vec3 cameraDir;
+
 void main()
 {
 	vec3 L = -lightDir;
@@ -24,8 +28,11 @@ void main()
 	vec3 shadedColor = objectColor * diffuse + lightColor * specular;
 	
 	float ambient = 0.2;
-	// gl_FragColor = vec4(mix(objectColor, shadedColor, 1.0 - ambient), 1.0);
 
-	//fog setup
-	gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), objectColor, visibility), 1.0);
+    
+	float theta = dot(V, normalize(-cameraDir));
+    float epsilon = (cutOff - cutOffOut);
+    float intensity = clamp((theta - cutOffOut) / epsilon, 0.0, 1.0);
+
+	gl_FragColor = vec4(mix(vec3(0.3, 0.3, 0.3), objectColor, visibility * intensity), 1.0);
 }

@@ -165,9 +165,11 @@ glm::vec3 prevSubmarinePos;
 glm::vec3 newSubmarinePos;
 
 
+
 //float particlePerSecond, float speed, float gravityStrength, float drag, float lifeLength, particleType type
 ParticleGroup engineParticles = ParticleGroup(20, 2, 0.3, 0.0, 15, particleType::PARTICLE_BUBBLE);
 ParticleGroup explosionParticles = ParticleGroup(0, 4, 0.2, 0.0, 1.5, particleType::PARTICLE_SMOKE);
+
 void keyboard(unsigned char key, int x, int y)
 {
 	const float angleSpeed = 0.1f;
@@ -186,14 +188,14 @@ void keyboard(unsigned char key, int x, int y)
 	{
 	case 'z':
 	case 'Z':
-	case 'ÿ':
-	case 'ß': // turn left
+	case 'Ã¿':
+	case 'ÃŸ': // turn left
 		cameraAngle -= angleSpeed;
 		break;
 	case 'x':
 	case 'X':
-	case '÷':
-	case '×': // turn right
+	case 'Ã·':
+	case 'Ã—': // turn right
 		cameraAngle += angleSpeed;
 		break;
 
@@ -293,7 +295,12 @@ glm::mat4 createCameraMatrix()
 void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 {
 	glUniform3f(glGetUniformLocation(program, "lightDir"), lightDir.x, lightDir.y, lightDir.z);
+	glUniform3f(glGetUniformLocation(program, "cameraDir"), cameraDir.x, cameraDir.y, cameraDir.z);
+
 	glUniform3f(glGetUniformLocation(program, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
+	glUniform1f(glGetUniformLocation(program, "cutOff"), glm::cos(glm::radians(12.5f)));
+	glUniform1f(glGetUniformLocation(program, "cutOffOut"), glm::cos(glm::radians(17.5f)));
+
 
 	glm::mat4 transformation = perspectiveMatrix * cameraMatrix * modelMatrix;
 	glm::mat4 modelViewMatrix = cameraMatrix * modelMatrix;
@@ -302,6 +309,7 @@ void setUpUniforms(GLuint program, glm::mat4 modelMatrix)
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelViewMatrix"), 1, GL_FALSE, (float*)&transformation);
 
 	glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
+
 }
 
 // method to draw obj with color
@@ -568,12 +576,12 @@ void drawFauna() {
 		case 0:
 			drawObjectColor(&rockModel1, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
 				* glm::scale(glm::vec3(3.0f)), // scale 3x
-				glm::vec3(0.3, 0.3, 0.3)); // color
+				glm::vec3(0.3, 0.5, 0.3)); // color
 			break;
 		case 1:
 			drawObjectColor(&rockModel2, glm::translate(rockPositions[i]) // put at places from the preinitialized arrray with rand coords
 				* glm::scale(glm::vec3(3.0f)), // scale 3x
-				glm::vec3(0.3, 0.3, 0.3));	// color
+				glm::vec3(0.3, 0.5, 0.3));	// color
 			break;
 		}
 

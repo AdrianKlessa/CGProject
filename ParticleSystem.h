@@ -21,7 +21,7 @@ private:
 
 public:
 	static void ParticleSystem::init();
-	static void ParticleSystem::renderParticles(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix);
+	static void ParticleSystem::renderParticles(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix, glm::vec3 cameraDir, glm::vec3 cameraPos);
 
 	//Adds a new particle group to the list
 	//Used automatically when a new particle group is created

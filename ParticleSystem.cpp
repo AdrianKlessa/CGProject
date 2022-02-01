@@ -25,7 +25,7 @@
 
 	}
 
-	void ParticleSystem::renderParticles(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix){
+	void ParticleSystem::renderParticles(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix, glm::vec3 cameraDir, glm::vec3 cameraPos){
 		float vertices[] = { -0.5f, 0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, -0.5f,};
 		float texCoords[] = {
 	0.0f, 1.0f,    //top left
@@ -41,6 +41,14 @@
 		glDepthMask(false);
 		glVertexAttribPointer(0, 2, GL_FLOAT, false, 0, vertices);
 		glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, texCoords);
+		glUniform3f(glGetUniformLocation(program, "cameraDir"), cameraDir.x, cameraDir.y, cameraDir.z);
+
+		glUniform3f(glGetUniformLocation(program, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
+		glUniform1f(glGetUniformLocation(program, "cutOff"), glm::cos(glm::radians(12.5f)));
+		glUniform1f(glGetUniformLocation(program, "cutOffOut"), glm::cos(glm::radians(17.5f)));
+
+
+
 		glEnableVertexAttribArray(0);
 		for (auto ParticleGroup : particleGroups) {
 			//Sending the correct texture to the shader based on particle type

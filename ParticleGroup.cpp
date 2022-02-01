@@ -133,6 +133,7 @@
 			glUniformMatrix4fv(glGetUniformLocation(program, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 			float opacity = particle.lifeLeft / particle.lifeLength;
 			glUniform1f(glGetUniformLocation(program, "opacity"),opacity);
+			glUniform1f(glGetUniformLocation(program, "particleZ"), particle.position.z);
 			glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		}
 

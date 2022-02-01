@@ -750,7 +750,7 @@ void renderScene()
 
 	//Drawing particles (has to be put after 3D stuff)
 	engineParticles.generateParticles(positionFromModelMatrix(shipModelMatrix), dtime);
-	ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix);
+	ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
 
 	glutSwapBuffers();
 

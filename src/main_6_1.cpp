@@ -165,9 +165,9 @@ glm::vec3 prevSubmarinePos;
 glm::vec3 newSubmarinePos;
 
 
-//glm::vec3 pos, glm::vec3 vel, float gravForce, float drag, float lifetime, float rotation, float scale
+//float particlePerSecond, float speed, float gravityStrength, float drag, float lifeLength, particleType type
 ParticleGroup engineParticles = ParticleGroup(20, 2, 0.3, 0.0, 15, particleType::PARTICLE_BUBBLE);
-
+ParticleGroup explosionParticles = ParticleGroup(0, 4, 0.2, 0.0, 1.5, particleType::PARTICLE_SMOKE);
 void keyboard(unsigned char key, int x, int y)
 {
 	const float angleSpeed = 0.1f;
@@ -491,6 +491,10 @@ void updateMines(glm::mat4 shipModelMatrix) {
 
 		if (distance <= explosionDistance) {
 			std::cout << "The player exploded \n";
+			explosionParticles.explode(currentBoxPos);
+			pxScene.scene->removeActor(*std::get<0>(boxes[i]));
+
+			renewMine(i, shipPos);
 			//TODO: add the actual explosion 
 		}
 
@@ -779,6 +783,7 @@ void init()
 {
 	ParticleSystem::init();
 	ParticleSystem::addGroup(engineParticles);
+	ParticleSystem::addGroup(explosionParticles);
 	srand(static_cast <unsigned> (time(0))); //Initializing random number generation
 	glEnable(GL_DEPTH_TEST);
 

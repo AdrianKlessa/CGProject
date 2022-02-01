@@ -30,8 +30,9 @@ public:
 	void generateParticles(glm::vec3 center, double deltaTime);
 
 	void emitParticle(glm::vec3 center);
+	void emitParticle(glm::vec3 center, glm::vec3 velocity);
 	void update(double deltaTime);
-	void explode();
+	void explode(glm::vec3 location);
 	void renderParticles(GLuint program, glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix);
 };
 

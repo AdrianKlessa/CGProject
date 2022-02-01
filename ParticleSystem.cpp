@@ -14,10 +14,15 @@
  GLuint ParticleSystem::program;
  Core::Shader_Loader ParticleSystem::shaderLoader;
  GLuint ParticleSystem::bubbleTexture;
+ GLuint ParticleSystem::fireTexture;
+ GLuint ParticleSystem::smokeTexture;
 
 	void ParticleSystem::init() {
 		program = shaderLoader.CreateProgram("shaders/shader_particle.vert", "shaders/shader_particle.frag");
 		bubbleTexture = Core::LoadTexture("textures/bubble_texture.png");
+		fireTexture = Core::LoadTexture("textures/fire_texture.png");
+		smokeTexture = Core::LoadTexture("textures/smoke_texture.png");
+
 	}
 
 	void ParticleSystem::renderParticles(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix){
@@ -42,6 +47,13 @@
 			switch ((*ParticleGroup).type) {
 			case PARTICLE_BUBBLE:
 				Core::SetActiveTexture(bubbleTexture, "textureSampler", program, 0);
+				break;
+
+			case PARTICLE_FIRE:
+				Core::SetActiveTexture(fireTexture, "textureSampler", program, 0);
+				break;
+			case PARTICLE_SMOKE:
+				Core::SetActiveTexture(smokeTexture, "textureSampler", program, 0);
 				break;
 			}
 

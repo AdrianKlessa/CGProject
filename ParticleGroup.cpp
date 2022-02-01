@@ -54,6 +54,19 @@
 		std::cout<<(this);
 	}
 
+	void ParticleGroup::emitParticle(glm::vec3 center, glm::vec3 velocity) {
+		float dirX = Random::Float(-1, 1);
+		float dirZ = Random::Float(-1, 1);
+		glm::vec3 vel = velocity;
+		vel = glm::normalize(vel);
+		vel *= speed;
+		//glm::vec3 pos, glm::vec3 vel, float gravForce, float lifetime, float rotation, float scale
+		Particle newParticle = Particle(center, vel, gravityStrength, drag, lifeLength, 0.0, 0.2);
+		particleList.push_back(newParticle);
+		std::cout << "\n Size of particle list on addition: " << particleList.size() << "\n";
+		std::cout << (this);
+	}
+
 	void ParticleGroup::update(double deltaTime) {
 
 		std::list<Particle>::iterator i = particleList.begin();
@@ -80,7 +93,18 @@
 		*/
 	}
 
-	void ParticleGroup::explode() {
+	void ParticleGroup::explode(glm::vec3 location) {
+		for (int i = 0; i < 100; i++) {
+			float dirX = Random::Float(-1, 1);
+			float dirY = Random::Float(-1, 1);
+			float dirZ = Random::Float(-1, 1);
+			glm::vec3 velocity = glm::vec3(dirX, dirY, dirZ);
+			velocity = glm::normalize(velocity);
+			velocity *= speed;
+			//glm::vec3 pos, glm::vec3 vel, float gravForce, float lifetime, float rotation, float scale
+			Particle newParticle = Particle(location, velocity, gravityStrength, drag, lifeLength, 0.0, 0.2);
+			particleList.push_back(newParticle);
+		}
 
 	}
 	

@@ -16,6 +16,9 @@ private:
 	static GLuint program;
 	static Core::Shader_Loader shaderLoader;
 	static GLuint bubbleTexture;
+	static GLuint smokeTexture;
+	static GLuint fireTexture;
+
 public:
 	static void ParticleSystem::init();
 	static void ParticleSystem::renderParticles(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix);

@@ -14,12 +14,13 @@
 
 
 
-	ParticleGroup::ParticleGroup(float particlePerSecond, float speed, float gravityStrength, float lifeLength, particleType type) {
+	ParticleGroup::ParticleGroup(float particlePerSecond, float speed, float gravityStrength, float drag, float lifeLength, particleType type) {
 		this->particlePerSecond = particlePerSecond;
 		this->speed = speed;
 		this->gravityStrength = gravityStrength;
 		this->lifeLength = lifeLength;
 		this->type = type;
+		this->drag = drag;
 	};
 
 	//The center is where the particles will be created
@@ -47,7 +48,7 @@
 		velocity = glm::normalize(velocity);
 		velocity *= speed;
 		//glm::vec3 pos, glm::vec3 vel, float gravForce, float lifetime, float rotation, float scale
-		Particle newParticle = Particle(center, velocity, gravityStrength, lifeLength, 0.0, 0.2);
+		Particle newParticle = Particle(center, velocity, gravityStrength, drag, lifeLength, 0.0, 0.2);
 		particleList.push_back(newParticle);
 		std::cout << "\n Size of particle list on addition: " << particleList.size() <<"\n";
 		std::cout<<(this);

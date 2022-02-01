@@ -165,8 +165,8 @@ glm::vec3 prevSubmarinePos;
 glm::vec3 newSubmarinePos;
 
 
-//float particlePerSecond, float speed, float gravityStrength, float lifeLength, particleType type
-ParticleGroup engineParticles = ParticleGroup(20, 2, -0.3, 15, particleType::PARTICLE_BUBBLE);
+//glm::vec3 pos, glm::vec3 vel, float gravForce, float drag, float lifetime, float rotation, float scale
+ParticleGroup engineParticles = ParticleGroup(20, 2, 0.3, 0.0, 15, particleType::PARTICLE_BUBBLE);
 
 void keyboard(unsigned char key, int x, int y)
 {

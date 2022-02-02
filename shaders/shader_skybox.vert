@@ -23,7 +23,8 @@ void main()
     
     
     // fog setup
-	float dist = distance(cameraPos.xyz, worldPosition.xyz);
+	//float dist = distance(cameraPos.xyz, worldPosition.xyz);
+    dist = 1000; //The skybox is really far away
 	visibility = exp(-pow((dist * density), gradient));
 	visibility = clamp(visibility, 0.0, 1.0);
 }  

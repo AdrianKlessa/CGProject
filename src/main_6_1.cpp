@@ -17,6 +17,8 @@
 #include "Physics.h"
 #include "..\ParticleSystem.h"
 #include "..\ParticleGroup.h"
+#include "..\ShipMovementEnums.h"
+
 float skyboxVertices[] = {
 	// positions
 	-1.0f, 1.0f, -1.0f,
@@ -144,7 +146,7 @@ GLuint textureBox, textureGround;
 std::vector <glm::mat4> boxModelMatrices(NUM_MINES);
 std::vector <std::tuple<PxRigidDynamic*, PxMaterial*, PxShape*>> boxes;
 std::vector <double> timeCreated(NUM_MINES);
-float current_time;
+float current_time=0;
 
 // Initalization of physical scene (PhysX)
 Physics pxScene(2.8f /* gravity (m/s^2) */);
@@ -170,16 +172,31 @@ glm::vec3 newSubmarinePos;
 ParticleGroup engineParticles = ParticleGroup(2, 2, 0.3, 0.0, 4, particleType::PARTICLE_BUBBLE);
 ParticleGroup explosionParticles = ParticleGroup(0, 4, 0.2, 0.0, 0.75, particleType::PARTICLE_SMOKE);
 
+
+
+
+//Ship movement physics
+const double shipAcceleration = 8.0; //How fast the ship accelerates 
+const double shipMaxSpeed = 20; //Max ship speed
+const double shipDecceleration = 5.0; //How fast the ship deccelerates when no button is pushed
+const double shipTurningAcceleration = 1.0; //How fast the ship increases its rotational speed
+const double shipTurningMax=1.5; //Max rotational speed
+const double shipTurningDecceleration = 3.0; //How fast it stops rotating when no button is pressed
+const float keypressLatency = 0.45;
+
+ShipRotation currentShipRotationState;
+ShipAcceleration currentShipAccelerationState;
+double shipRotationVelocity = 0;
+glm::vec3 shipVelocity = glm::vec3(0, 0, 0);
+float lastKeypressTime=0;
+
 void keyboard(unsigned char key, int x, int y)
 {
 	const float angleSpeed = 0.1f;
 	const float moveSpeedXZ = 0.1f * 30; // speed going forward, back, left n right
 	const float moveSpeedY = 0.1f * 30; // speed going up n down
+	lastKeypressTime = current_time;
 
-	// 'end of world' limits
-	const float xAndZBoundary = 10000.0f; 
-	const float yTopBoundary = 60.0f;
-	const float yBottomBoundary = -30.0f;
 
 	// var for pre-calculating of a next step
 	glm::vec3 nextStep;
@@ -190,18 +207,27 @@ void keyboard(unsigned char key, int x, int y)
 	case 'Z':
 	case 'ÿ':
 	case 'ß': // turn left
-		cameraAngle -= angleSpeed;
+		//cameraAngle -= angleSpeed;
+		currentShipRotationState = ROTATION_LEFT;
+		currentShipAccelerationState = MOVEMENT_NONE;
 		break;
 	case 'x':
 	case 'X':
 	case '÷':
 	case '×': // turn right
-		cameraAngle += angleSpeed;
+		//cameraAngle += angleSpeed;
+		currentShipRotationState = ROTATION_RIGHT;
+		currentShipAccelerationState = MOVEMENT_NONE;
 		break;
 
 	case 'w':
 	case 'W': //forward
-		nextStep = cameraPos + cameraDir * moveSpeedXZ;
+
+
+		currentShipAccelerationState = MOVEMENT_FORWARD;
+		currentShipRotationState = ROTATION_NONE;
+		break;
+		/*nextStep = cameraPos + cameraDir * moveSpeedXZ;
 
 		// allow if next step not out of bounds
 		if (abs(abs(nextStep.z)) <= xAndZBoundary && abs(nextStep.x) <= xAndZBoundary) {
@@ -212,9 +238,14 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-
+		*/
+		
 	case 's':
 	case 'S': //back
+		currentShipAccelerationState = MOVEMENT_BACK;
+		currentShipRotationState = ROTATION_NONE;
+		break;
+		/*
 		nextStep = cameraPos - cameraDir * moveSpeedXZ;
 
 		// allow if next step not out of bounds
@@ -226,9 +257,13 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-
+		*/
 	case 'd':
 	case 'D': //right
+		currentShipAccelerationState = MOVEMENT_RIGHT;
+		currentShipRotationState = ROTATION_NONE;
+		break;
+		/*
 		nextStep = cameraPos + glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
 		// allow if next step not out of bounds
@@ -240,9 +275,13 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-
+		*/
 	case 'a':
 	case 'A': //left
+		currentShipAccelerationState = MOVEMENT_LEFT;
+		currentShipRotationState = ROTATION_NONE;
+		break;
+		/*
 		nextStep = cameraPos - glm::cross(cameraDir, glm::vec3(0, 1, 0)) * moveSpeedXZ;
 
 		// allow if next step not out of bounds
@@ -254,10 +293,13 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-
+		*/
 	case 'e':
 	case 'E': //up
-
+		currentShipAccelerationState = MOVEMENT_UP;
+		currentShipRotationState = ROTATION_NONE;
+		break;
+		/*
 		// allow if next step not out of bounds
 		if (cameraPos.y <= yTopBoundary) {
 			cameraPos += glm::vec3(0, 1, 0) * moveSpeedY;
@@ -267,10 +309,13 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
-
+		*/
 	case 'q':
 	case 'Q': //down
-
+		currentShipAccelerationState = MOVEMENT_DOWN;
+		currentShipRotationState = ROTATION_NONE;
+		break;
+		/*
 		// allow if next step not out of bounds
 		if (cameraPos.y >= yBottomBoundary) {
 			cameraPos -= glm::vec3(0, 1, 0) * moveSpeedY;
@@ -280,7 +325,144 @@ void keyboard(unsigned char key, int x, int y)
 		{
 			break;
 		}
+		*/
+
+	default:
+		currentShipAccelerationState = MOVEMENT_NONE;
+		currentShipRotationState = ROTATION_NONE;
 	}
+}
+
+int signOf(double number) {
+	if (number >= 1) {
+		return 1;
+	}
+	else {
+		return -1;
+	}
+}
+
+void updateShipMovement(double deltaTime) {
+
+	/*
+	const double shipAcceleration = 3.0; //How fast the ship accelerates 
+	const double shipMaxSpeed = 5.0; //Max ship speed
+	const double shipDecceleration = 1.0; //How fast the ship deccelerates when no button is pushed
+
+
+
+	const double shipTurninAcceleration = 5.0; //How fast the ship increases its rotational speed
+	const double shipTurningMax=15.0; //Max rotational speed
+	const double shipTurningDecceleration = 3.0; //How fast it stops rotating when no button is pressed
+
+
+	ShipRotation currentShipRotationState;
+	ShipAcceleration currentShipAccelerationState;
+	double shipRotationVelocity = 0;
+	glm::vec3 shipVelocity = glm::vec3(0, 0, 0);
+
+	
+	*/
+
+
+	// 'end of world' limits
+	const float xAndZBoundary = 10000.0f;
+	const float yTopBoundary = 60.0f;
+	const float yBottomBoundary = -30.0f;
+
+	glm::vec3 nextStep;
+	glm::vec3 vectorRight = glm::cross(cameraDir, glm::vec3(0, 1, 0));
+	double deltaRotationAcceleration = deltaTime * shipTurningAcceleration;
+	double deltaAcceleration = deltaTime * shipAcceleration;
+
+
+	//Checking to make sure the last keypress wasn't too long ago since the keyboard function only triggers on a keypress
+	if ((double)current_time - lastKeypressTime > keypressLatency) {
+		currentShipRotationState = ROTATION_NONE;
+		currentShipAccelerationState = MOVEMENT_NONE;
+	}
+
+	switch (currentShipAccelerationState) {
+	case MOVEMENT_FORWARD:
+		shipVelocity += cameraDir * deltaAcceleration;
+		if (glm::length(shipVelocity) > shipMaxSpeed) {
+			shipVelocity = glm::normalize(shipVelocity) * shipMaxSpeed;
+		}
+		break;
+	case MOVEMENT_BACK:
+		shipVelocity -= cameraDir * deltaAcceleration;
+		if (glm::length(shipVelocity) > shipMaxSpeed) {
+			shipVelocity = glm::normalize(shipVelocity) * shipMaxSpeed;
+		}
+		break;
+	case MOVEMENT_LEFT:
+		shipVelocity -= vectorRight * deltaAcceleration;
+		if (glm::length(shipVelocity) > shipMaxSpeed) {
+			shipVelocity = glm::normalize(shipVelocity) * shipMaxSpeed;
+		}
+		break;
+	case MOVEMENT_RIGHT:
+		shipVelocity += vectorRight * deltaAcceleration;
+		if (glm::length(shipVelocity) > shipMaxSpeed) {
+			shipVelocity = glm::normalize(shipVelocity) * shipMaxSpeed;
+		}
+		break;
+	case MOVEMENT_UP:
+		shipVelocity += glm::vec3(0, 1, 0) * deltaAcceleration;
+		if (glm::length(shipVelocity) > shipMaxSpeed) {
+			shipVelocity = glm::normalize(shipVelocity) * shipMaxSpeed;
+		}
+		break;
+	case MOVEMENT_DOWN:
+		shipVelocity += glm::vec3(0, -1, 0) * deltaAcceleration;
+		if (glm::length(shipVelocity) > shipMaxSpeed) {
+			shipVelocity = glm::normalize(shipVelocity) * shipMaxSpeed;
+		}
+		break;
+	default:
+		shipVelocity -= glm::normalize(shipVelocity) * shipDecceleration * deltaTime;
+	}
+
+
+
+	switch (currentShipRotationState) {
+	case ROTATION_LEFT:
+		shipRotationVelocity -= deltaRotationAcceleration;
+		break;
+	case ROTATION_RIGHT:
+		shipRotationVelocity += deltaRotationAcceleration;
+		break;
+	default:
+		if (shipRotationVelocity > 0) {
+			shipRotationVelocity = std::max((shipRotationVelocity - shipTurningDecceleration * deltaTime), 0.0);
+		}
+		else {
+			shipRotationVelocity = std::min((shipRotationVelocity + shipTurningDecceleration * deltaTime), 0.0);
+		}
+		
+	}
+	if (shipRotationVelocity < -shipTurningMax) {
+		shipRotationVelocity = -shipTurningMax;
+	}
+	else if(shipRotationVelocity> shipTurningMax){
+		shipRotationVelocity = shipTurningMax;
+	}
+
+
+	cameraAngle += shipRotationVelocity*deltaTime;
+
+	glm::vec3 shipMovement = shipVelocity * deltaTime;
+
+
+	//const float xAndZBoundary = 10000.0f;
+	//const float yTopBoundary = 60.0f;
+	//const float yBottomBoundary = -30.0f;
+
+	if (((cameraPos + shipMovement).x > xAndZBoundary) | ((cameraPos + shipMovement).x < -1 * xAndZBoundary) | ((cameraPos + shipMovement).z > xAndZBoundary) | ((cameraPos + shipMovement).z < -1 * xAndZBoundary) | ((cameraPos + shipMovement).y > yTopBoundary) | ((cameraPos + shipMovement).y < yBottomBoundary)) {
+		shipVelocity *= 0;
+	}
+	shipMovement = shipVelocity * deltaTime;
+	cameraPos += shipMovement;
 }
 
 glm::mat4 createCameraMatrix()
@@ -669,14 +851,7 @@ void renderScene()
 		lightDir = glm::normalize(glm::vec3(sin(lightAngle), -1.0f, cos(lightAngle)));
 	}
 
-	// Aktualizacja macierzy widoku i rzutowania. Macierze sa przechowywane w zmiennych globalnych, bo uzywa ich funkcja drawObject.
-	// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
-	//  Jest to mozliwe dzieki temu, ze macierze widoku i rzutowania sa takie same dla wszystkich obiektow!)
-	cameraMatrix = createCameraMatrix();
-	perspectiveMatrix = Core::createPerspectiveMatrix(0.01f, 5000.f, frustumScale);
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
 
 
 	// physics settings
@@ -694,7 +869,18 @@ void renderScene()
 	}
 
 	ParticleSystem::update(dtime);
-	
+	updateShipMovement(dtime);
+
+
+	// Aktualizacja macierzy widoku i rzutowania. Macierze sa przechowywane w zmiennych globalnych, bo uzywa ich funkcja drawObject.
+	// (Bardziej elegancko byloby przekazac je jako argumenty do funkcji, ale robimy tak dla uproszczenia kodu.
+	//  Jest to mozliwe dzieki temu, ze macierze widoku i rzutowania sa takie same dla wszystkich obiektow!)
+	cameraMatrix = createCameraMatrix();
+	perspectiveMatrix = Core::createPerspectiveMatrix(0.01f, 5000.f, frustumScale);
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClearColor(0.0f, 0.3f, 0.3f, 1.0f);
+
 
 	// submarine matrix
 	glm::mat4 shipModelMatrix = glm::translate(cameraPos + cameraDir * 1.0f + glm::vec3(0, -0.25f, 0))

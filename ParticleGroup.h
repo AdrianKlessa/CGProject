@@ -13,7 +13,7 @@
 class ParticleGroup
 {
 private:
-	float particlePerSecond; //How many are created per second
+	int particlePerSecond; //How many are created per second
 	float speed; //The initial speed of the particles
 	float gravityStrength; //How much gravity affects the particles
 	float lifeLength; //Lifetime of the particles
@@ -23,7 +23,7 @@ public:
 
 	std::list<Particle> particleList;
 	particleType type; //The type of the particle (used for choosing the texture)
-	ParticleGroup(float particlePerSecond, float speed, float gravityStrength, float drag, float lifeLength, particleType type);
+	ParticleGroup(int particlePerSecond, float speed, float gravityStrength, float drag, float lifeLength, particleType type);
 
 	//The center is where the particles will be created
 	//To be called every frame
@@ -34,5 +34,6 @@ public:
 	void update(double deltaTime);
 	void explode(glm::vec3 location);
 	void renderParticles(GLuint program, glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix);
+	void setParticleSpeed(int particleSpeed);
 };
 

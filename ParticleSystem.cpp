@@ -22,17 +22,18 @@
 		bubbleTexture = Core::LoadTexture("textures/bubble_texture.png");
 		fireTexture = Core::LoadTexture("textures/fire_texture.png");
 		smokeTexture = Core::LoadTexture("textures/smoke_texture.png");
-
 	}
 
 	void ParticleSystem::renderParticles(glm::mat4 cameraMatrix, glm::mat4 perspectiveMatrix, glm::vec3 cameraDir, glm::vec3 cameraPos){
+
 		float vertices[] = { -0.5f, 0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f, -0.5f,};
 		float texCoords[] = {
-	0.0f, 1.0f,    //top left
-	0.0f, 0.0f,  //bottom left
-	1.0f, 1.0f, //top right
-	1.0f, 0.0f //bottom right
+			0.0f, 1.0f,    //top left
+			0.0f, 0.0f,  //bottom left
+			1.0f, 1.0f, //top right
+			1.0f, 0.0f //bottom right
 		};
+
 		glUseProgram(program);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

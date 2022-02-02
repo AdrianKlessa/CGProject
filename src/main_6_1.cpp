@@ -466,7 +466,7 @@ void renewMine(int i, glm::vec3 shipPos) {
 		mat,
 		pxScene.physics->createShape(PxSphereGeometry(1),
 			*mat)));
-	std::cout << shipPos.x << "  " << shipPos.z << "\n";
+	//std::cout << shipPos.x << "  " << shipPos.z << "\n";
 
 	std::get<0>(boxes[i])->attachShape(*std::get<2>(boxes[i]));
 	std::get<2>(boxes[i])->release();
@@ -519,6 +519,7 @@ void updateMines(glm::mat4 shipModelMatrix) {
 	}
 }
 
+// generate positions for rocks and seaweed
 void generateFaunaPos(glm::vec3 submarinepPos) {
 
 	for (int i = 0; i < NUM_ROCKS; i++)
@@ -567,6 +568,7 @@ void generateFaunaPos(glm::vec3 submarinepPos) {
 	}
 }
 
+// draw rocks and seaweed
 void drawFauna() {
 
 	// drawing rocks and seaweed
@@ -605,6 +607,7 @@ void drawFauna() {
 	}
 }
 
+// update positions for rocks and seaweed
 void updateFauna(glm::mat4 shipModelMatrix) {
 	newSubmarinePos = positionFromModelMatrix(shipModelMatrix);
 	int threshold = 110;
@@ -622,9 +625,32 @@ void updateFauna(glm::mat4 shipModelMatrix) {
 	}
 }
 
+// generating and rendering particles for the submarine and mines
+void generateAndRenderParticles(glm::mat4 shipModelMatrix, double dtime) {
+
+	// particles for mines
+	for (size_t i = 0; i < NUM_MINES; i++)
+	{
+		engineParticles.setParticleSpeed(4);
+		engineParticles.generateParticles(positionFromModelMatrix(boxModelMatrices[i]), dtime * 2);
+		ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
+	}
+
+	for (size_t i = 0; i < NUM_ROCKS / 6; i++)
+	{
+		//engineParticles.setParticleSpeed(1);
+		engineParticles.generateParticles(seaWeedPositions[i], dtime * 2);
+		ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
+	}
+
+	// particles for the submarine
+	engineParticles.setParticleSpeed(1);
+	engineParticles.generateParticles(positionFromModelMatrix(shipModelMatrix), dtime / 2);
+	ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
+}
+
 void renderScene()
 {
-
 
 	//data for hammer shark movement
 	current_time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f - appLoadingTime;
@@ -739,7 +765,7 @@ void renderScene()
 	// draw mines
 	for (size_t i = 0; i < NUM_MINES; i++)
 	{
-		drawObjectTextureNM(&mineModel, boxModelMatrices[i], textureMine, normalMine); // boxModelMatrix was updated in updateTransforms()
+		drawObjectTextureNM(&mineModel, boxModelMatrices[i] * glm::scale(glm::vec3(3)), textureMine, normalMine); // boxModelMatrix was updated in updateTransforms()
 	}
 
 	// update mine positions
@@ -749,8 +775,7 @@ void renderScene()
 	drawSkybox(cameraMatrix, perspectiveMatrix);
 
 	//Drawing particles (has to be put after 3D stuff)
-	engineParticles.generateParticles(positionFromModelMatrix(shipModelMatrix), dtime);
-	ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
+	generateAndRenderParticles(shipModelMatrix, dtime);
 
 	glutSwapBuffers();
 

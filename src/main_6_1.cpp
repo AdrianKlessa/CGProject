@@ -160,7 +160,7 @@ PxRigidStatic* planeBody = nullptr;
 PxMaterial* planeMaterial = nullptr;
 
 const double boxLifetime = 5.0f; // after this time a new box spawns (with some element of randomness)
-const double explosionDistance = 5.0f; // how far away the mine is from the player when it triggers
+const double explosionDistance = 10.0f; // how far away the mine is from the player when it triggers
 
 glm::vec3 initSubmarinePos;
 glm::vec3 prevSubmarinePos;
@@ -188,6 +188,9 @@ ShipRotation currentShipRotationState;
 ShipAcceleration currentShipAccelerationState;
 double shipRotationVelocity = 0;
 glm::vec3 shipVelocity = glm::vec3(0, 0, 0);
+glm::vec3 velFromBombs = glm::vec3(0, 0, 0); //Velocity that is added due to bombs exploding
+double bombStrength = 10.0; //How powerful the explosions are
+double bombSpeedDieout = 0.1; // How fast the speed added from bomb explosions disappears; 0.0-1.0
 float lastKeypressTime=0;
 
 void keyboard(unsigned char key, int x, int y)
@@ -375,11 +378,12 @@ void updateShipMovement(double deltaTime) {
 	double deltaRotationAcceleration = deltaTime * shipTurningAcceleration;
 	double deltaAcceleration = deltaTime * shipAcceleration;
 
+	velFromBombs -= velFromBombs * deltaTime * bombSpeedDieout;
 
 	//Checking to make sure the last keypress wasn't too long ago since the keyboard function only triggers on a keypress
 	if ((double)current_time - lastKeypressTime > keypressLatency) {
-		currentShipRotationState = ROTATION_NONE;
-		currentShipAccelerationState = MOVEMENT_NONE;
+currentShipRotationState = ROTATION_NONE;
+currentShipAccelerationState = MOVEMENT_NONE;
 	}
 
 	switch (currentShipAccelerationState) {
@@ -439,30 +443,63 @@ void updateShipMovement(double deltaTime) {
 		else {
 			shipRotationVelocity = std::min((shipRotationVelocity + shipTurningDecceleration * deltaTime), 0.0);
 		}
-		
+
 	}
 	if (shipRotationVelocity < -shipTurningMax) {
 		shipRotationVelocity = -shipTurningMax;
 	}
-	else if(shipRotationVelocity> shipTurningMax){
+	else if (shipRotationVelocity > shipTurningMax) {
 		shipRotationVelocity = shipTurningMax;
 	}
 
 
-	cameraAngle += shipRotationVelocity*deltaTime;
+	cameraAngle += shipRotationVelocity * deltaTime;
 
-	glm::vec3 shipMovement = shipVelocity * deltaTime;
+	glm::vec3 shipMovement = (velFromBombs + shipVelocity) * deltaTime;
 
 
 	//const float xAndZBoundary = 10000.0f;
 	//const float yTopBoundary = 60.0f;
 	//const float yBottomBoundary = -30.0f;
-
+	/*
 	if (((cameraPos + shipMovement).x > xAndZBoundary) | ((cameraPos + shipMovement).x < -1 * xAndZBoundary) | ((cameraPos + shipMovement).z > xAndZBoundary) | ((cameraPos + shipMovement).z < -1 * xAndZBoundary) | ((cameraPos + shipMovement).y > yTopBoundary) | ((cameraPos + shipMovement).y < yBottomBoundary)) {
 		shipVelocity *= 0;
+		velFromBombs *= 0;
 	}
-	shipMovement = shipVelocity * deltaTime;
+	*/
+
+
+	//Stupid hack to prevent being stuck in terrain
+	if ((cameraPos + shipMovement).x > xAndZBoundary) {
+		shipVelocity.x = -1;
+		velFromBombs.x= -1;
+	}
+	else if ((cameraPos + shipMovement).x < -1 * xAndZBoundary) {
+		shipVelocity.x = 1;
+		velFromBombs.x = 1;
+	}
+	else if (((cameraPos + shipMovement).z > xAndZBoundary)) {
+		shipVelocity.z = -1;
+		velFromBombs.z = -1;
+	}
+	else if ((cameraPos + shipMovement).z < -1 * xAndZBoundary) {
+		shipVelocity.z = 1;
+		velFromBombs.z = 1;
+	}
+	else if ((cameraPos + shipMovement).y > yTopBoundary) {
+		shipVelocity.y = -1;
+		velFromBombs.y = -1;
+	}
+	else if ((cameraPos + shipMovement).y < yBottomBoundary){
+		shipVelocity.y = 1;
+		velFromBombs.y = 1;
+	}
+
+
+
+	shipMovement = (velFromBombs + shipVelocity) * deltaTime;
 	cameraPos += shipMovement;
+	// cameraPos += velFromBombs;
 }
 
 glm::mat4 createCameraMatrix()
@@ -682,6 +719,8 @@ void updateMines(glm::mat4 shipModelMatrix) {
 		if (distance <= explosionDistance) {
 			std::cout << "The player exploded \n";
 			explosionParticles.explode(currentBoxPos);
+			glm::vec3 vectorFromBombToShip = shipPos - currentBoxPos;
+			velFromBombs += glm::normalize(vectorFromBombToShip) * bombStrength;
 			pxScene.scene->removeActor(*std::get<0>(boxes[i]));
 
 			renewMine(i, shipPos);

@@ -17,6 +17,9 @@
 #include "Physics.h"
 #include "..\ParticleSystem.h"
 #include "..\ParticleGroup.h"
+
+#include <..\GLFW\glfw3.h>
+
 float skyboxVertices[] = {
 	// positions
 	-1.0f, 1.0f, -1.0f,
@@ -83,6 +86,9 @@ obj::Model shipModel;
 obj::Model sphereModel;
 obj::Model hamSharkModel;
 obj::Model megalodonModel;
+obj::Model symbolModel;
+obj::Model richierModel;
+
 
 obj::Model terrainModel;
 obj::Model rockModel1;
@@ -110,6 +116,7 @@ GLuint textureShip;
 GLuint textureTerrain;
 GLuint textureMine;
 GLuint textureMegalodon;
+GLuint textureSymbol;
 
 // vars for normals
 GLuint normalTest;
@@ -164,11 +171,59 @@ glm::vec3 initSubmarinePos;
 glm::vec3 prevSubmarinePos;
 glm::vec3 newSubmarinePos;
 
-
-
-//float particlePerSecond, float speed, float gravityStrength, float drag, float lifeLength, particleType type
+// float particlePerSecond, float speed, float gravityStrength, float drag, float lifeLength, particleType type
 ParticleGroup engineParticles = ParticleGroup(2, 2, 0.3, 0.0, 4, particleType::PARTICLE_BUBBLE);
 ParticleGroup explosionParticles = ParticleGroup(0, 4, 0.2, 0.0, 0.75, particleType::PARTICLE_SMOKE);
+ParticleGroup fireParticles = ParticleGroup(0, 4, 0.2, 0.0, 0.75, particleType::PARTICLE_FIRE);
+
+
+// mouse movement stuff
+bool firstMouse = true;
+float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float pitch = 0.0f;
+float lastX = 800.0f / 2.0;
+float lastY = 600.0 / 2.0;
+float fov = 45.0f;
+
+// timing
+float deltaTime = 0.0f;	// time between current frame and last frame
+float lastFrame = 0.0f;
+
+//void mouseCallback (int xposIn, int yposIn) {
+//	float xpos = static_cast<float>(xposIn);
+//	float ypos = static_cast<float>(yposIn);
+//
+//	if (firstMouse)
+//	{
+//		lastX = xpos;
+//		lastY = ypos;
+//		firstMouse = false;
+//	}
+//
+//	float xoffset = xpos - lastX;
+//	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+//	lastX = xpos;
+//	lastY = ypos;
+//
+//	float sensitivity = 0.1f; // change this value to your liking
+//	xoffset *= sensitivity;
+//	yoffset *= sensitivity;
+//
+//	yaw += xoffset;
+//	pitch += yoffset;
+//
+//	// make sure that when pitch is out of bounds, screen doesn't get flipped
+//	if (pitch > 89.0f)
+//		pitch = 89.0f;
+//	if (pitch < -89.0f)
+//		pitch = -89.0f;
+//
+//	glm::vec3 front;
+//	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+//	front.y = sin(glm::radians(pitch));
+//	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+//	cameraDir = glm::normalize(front);
+//}
 
 void keyboard(unsigned char key, int x, int y)
 {
@@ -482,28 +537,32 @@ glm::vec3 positionFromModelMatrix(glm::mat4 modelMatrix) {
 }
 
 // detects collisions and triggers mines' respawn
-void updateMines(glm::mat4 shipModelMatrix) {
+void updateMines(glm::mat4 shipModelMatrix/*, glm::mat4 sharkModeMatrix*/) {
 	
 	int random_margin = 5; // how much randomness in the lifetime of the boxes we want
 	//Added this so that not all boxes disappear at the same time
 
 	glm::vec3 shipPos = positionFromModelMatrix(shipModelMatrix);
+	//glm::vec3 sharkPos = positionFromModelMatrix(sharkModeMatrix);
+
 	glm::mat4 currentBoxMatrix; // model matrix of the current box
 	glm::vec3 currentBoxPos; // position of the current box
-	double distance; // distance from the submarine to the box
+	double distanceToShip; // distance from the submarine to the box
+	double distanceToShark; // distance from the submarine to the box
+
 	for (int i = 0; i < NUM_MINES; i++)
 	{
 		currentBoxMatrix = boxModelMatrices[i];
 		currentBoxPos = positionFromModelMatrix(currentBoxMatrix);
-		distance = glm::distance(shipPos, currentBoxPos);
+		distanceToShip = glm::distance(shipPos, currentBoxPos);
+		//distanceToShark = glm::distance(shipPos, sharkPos);
 
-		if (distance <= explosionDistance) {
+		if (distanceToShip <= explosionDistance) {
 			std::cout << "The player exploded \n";
 			explosionParticles.explode(currentBoxPos);
 			pxScene.scene->removeActor(*std::get<0>(boxes[i]));
 
 			renewMine(i, shipPos);
-			//TODO: add the actual explosion 
 		}
 
 		if ((current_time - timeCreated[i]) > (boxLifetime + rand() % random_margin)) {
@@ -636,18 +695,44 @@ void generateAndRenderParticles(glm::mat4 shipModelMatrix, double dtime) {
 		ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
 	}
 
-	for (size_t i = 0; i < NUM_ROCKS / 6; i++)
-	{
-		//engineParticles.setParticleSpeed(1);
-		engineParticles.generateParticles(seaWeedPositions[i], dtime * 2);
-		ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
-	}
+	//for (size_t i = 0; i < NUM_ROCKS / 6; i++)
+	//{
+	//	//engineParticles.setParticleSpeed(1);
+	//	engineParticles.generateParticles(seaWeedPositions[i], dtime * 2);
+	//	ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
+	//}
 
 	// particles for the submarine
 	engineParticles.setParticleSpeed(1);
 	engineParticles.generateParticles(positionFromModelMatrix(shipModelMatrix), dtime / 2);
 	ParticleSystem::renderParticles(cameraMatrix, perspectiveMatrix, cameraDir, cameraPos);
 }
+
+// draw scary sharks
+void drawMegalodons(int v1, int v2, int v3, int v4, float time, float time_int) {
+
+	drawObjectTextureNM(&megalodonModel, glm::translate(glm::catmullRom(cameraKeyPoints[v1] + glm::vec3(200, 0, 0),
+		cameraKeyPoints[v2] + glm::vec3(200, 0, 0),
+		cameraKeyPoints[v3] + glm::vec3(200, 0, 0),
+		cameraKeyPoints[v4] + glm::vec3(200, 0, 0), (time - time_int)))
+		* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 1, 0)), //follow forward
+		textureMegalodon, normalMegalodon);
+
+	drawObjectTextureNM(&megalodonModel, glm::translate(glm::catmullRom(cameraKeyPoints[v1] + glm::vec3(-200, 0, 0),
+		cameraKeyPoints[v2] + glm::vec3(-200, 0, 0),
+		cameraKeyPoints[v3] + glm::vec3(-200, 0, 0),
+		cameraKeyPoints[v4] + glm::vec3(-200, 0, 0), (time - time_int)))
+		* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 1, 0)), //follow forward
+		textureMegalodon, normalMegalodon);
+
+	drawObjectTextureNM(&megalodonModel, glm::translate(glm::catmullRom(cameraKeyPoints[v1] + glm::vec3(-200, 0, 200),
+		cameraKeyPoints[v2] + glm::vec3(-200, 0, 200),
+		cameraKeyPoints[v3] + glm::vec3(-200, 0, 200),
+		cameraKeyPoints[v4] + glm::vec3(-200, 0, 200), (time - time_int)))
+		* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 1, 0)), //follow forward
+		textureMegalodon, normalMegalodon);
+}
+
 
 void renderScene()
 {
@@ -745,15 +830,8 @@ void renderScene()
 	// update rocks and seaweed positions
 	updateFauna(shipModelMatrix);
 
-	// drawing hammer shark
-	//drawObjectColor(&hamSharkModel, glm::translate(glm::catmullRom(rockPositions[v1], rockPositions[v2], rockPositions[v3], rockPositions[v4], (time - time_int) ))
-	//								* glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) //init pos
-	//								* glm::rotate(glm::radians(-90.0f), glm::vec3(0, 0, 1)) //init pos
-	//								* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 0, 1)) //follow forward
-	//								* glm::scale(glm::vec3(0.1f)), //make small
-	//								glm::vec3(0.5, 0.6, 0.3)); //color
-
-	//drawObjectTextureNM(&megalodonModel, glm::translate(glm::vec3(0, 0, 0)), textureMegalodon, normalMegalodon);
+	// megalodons
+	drawMegalodons(v1, v2, v3, v4, time, time_int);
 
 	// draw terrain
 	drawObjectTextureNM(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(2.f)),
@@ -829,17 +907,17 @@ void init()
 	// models
 	shipModel = obj::loadModelFromFile("models/submarine.obj");
 	sphereModel = obj::loadModelFromFile("models/sphere.obj");
-	hamSharkModel = obj::loadModelFromFile("models/hamShark.obj");
-	//megalodonModel = obj::loadModelFromFile("models/vurdalak_low.obj"); //
+	megalodonModel = obj::loadModelFromFile("models/Shark.obj"); 
 	terrainModel = obj::loadModelFromFile("models/terrain.obj");
 	rockModel1 = obj::loadModelFromFile("models/bunch/SM_Big_Rock_02.obj");
 	rockModel2 = obj::loadModelFromFile("models/bunch/SM_Rock_04.obj");
 	seaWeedModel1 = obj::loadModelFromFile("models/seaweed1.obj");
 	seaWeedModel2 = obj::loadModelFromFile("models/bunch/SM_DeadBush_01.obj"); 
 	seaWeedModel3 = obj::loadModelFromFile("models/bunch/SM_Fern_02.obj"); 
-	boxModel = obj::loadModelFromFile("models/box.obj");
+	boxModel = obj::loadModelFromFile ("models/box.obj");
 	planeModel = obj::loadModelFromFile("models/plane.obj");
 	mineModel = obj::loadModelFromFile("models/mine.obj");
+
 
 	// textures
 	textureShip = Core::LoadTexture("textures/submarine.png");
@@ -850,7 +928,7 @@ void init()
 	textureBox = Core::LoadTexture("textures/a.png");
 	textureGround = Core::LoadTexture("textures/a.png");
 	textureMine = Core::LoadTexture("textures/mine_texture.png");
-	//textureMegalodon = Core::LoadTexture("models/vurdalak_Roughness.png"); //
+	textureMegalodon = Core::LoadTexture("textures/Shark.png");
 
 	// normals
 	normalShip = Core::LoadTexture("textures/Submarine_normals.png");
@@ -859,19 +937,19 @@ void init()
 	normalTest = Core::LoadTexture("textures/test_normals.png");
 	normalTerrain = Core::LoadTexture("textures/terrain/hight.png");
 	normalMine = Core::LoadTexture("textures/mine_normals.png");
-	//normalMegalodon = Core::LoadTexture("models/vurdalak_Normal_OpenGL.png"); //
+	normalMegalodon = Core::LoadTexture("textures/Shark_NM.png"); 
 
 	loadSkybox();
 	initPhysics();
 
 
-	// sth weird idk yet
+	// catmull rom spline setup
 	const float camRadius = 3.55;
 	const float camOffset = 0.6;
 	for (int i = 0; i < NUM_CAMERA_POINTS; i++)
 	{
 		float angle = (float(i)) * (2 * glm::pi<float>() / NUM_CAMERA_POINTS);
-		float radius = camRadius * (0.95 + glm::linearRand(0.0f, 0.1f));
+		float radius = 50 * camRadius * (0.95 + glm::linearRand(0.0f, 0.1f));
 		cameraKeyPoints[i] = glm::vec3(cosf(angle) + camOffset, 0.0f, sinf(angle)) * radius;
 	}
 	appLoadingTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
@@ -914,6 +992,9 @@ int main(int argc, char** argv)
 
 	init();
 	glutKeyboardFunc(keyboard);
+	//glutMotionFunc(mouseCallback);
+	//glutPassiveMotionFunc(mouseCallback);
+
 	glutDisplayFunc(renderScene);
 	glutIdleFunc(idle);
 	glutReshapeFunc(onReshape);

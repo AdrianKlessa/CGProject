@@ -159,8 +159,8 @@ double physicsTimeToProcess = 0;
 PxRigidStatic* planeBody = nullptr;
 PxMaterial* planeMaterial = nullptr;
 
-const double boxLifetime = 5.0f; // after this time a new box spawns (with some element of randomness)
-const double explosionDistance = 10.0f; // how far away the mine is from the player when it triggers
+const double boxLifetime = 10.0f; // after this time a new box spawns (with some element of randomness)
+const double explosionDistance = 15.0f; // how far away the mine is from the player when it triggers
 
 glm::vec3 initSubmarinePos;
 glm::vec3 prevSubmarinePos;
@@ -176,11 +176,11 @@ ParticleGroup explosionParticles = ParticleGroup(0, 4, 0.2, 0.0, 0.75, particleT
 
 
 //Ship movement physics
-const double shipAcceleration = 8.0; //How fast the ship accelerates 
+const double shipAcceleration = 16; //How fast the ship accelerates 
 const double shipMaxSpeed = 20; //Max ship speed
-const double shipDecceleration = 5.0; //How fast the ship deccelerates when no button is pushed
-const double shipTurningAcceleration = 1.0; //How fast the ship increases its rotational speed
-const double shipTurningMax=1.5; //Max rotational speed
+const double shipDecceleration = 16; //How fast the ship deccelerates when no button is pushed
+const double shipTurningAcceleration = 3.0; //How fast the ship increases its rotational speed
+const double shipTurningMax=1.0; //Max rotational speed
 const double shipTurningDecceleration = 3.0; //How fast it stops rotating when no button is pressed
 const float keypressLatency = 0.45;
 
@@ -189,8 +189,8 @@ ShipAcceleration currentShipAccelerationState;
 double shipRotationVelocity = 0;
 glm::vec3 shipVelocity = glm::vec3(0, 0, 0);
 glm::vec3 velFromBombs = glm::vec3(0, 0, 0); //Velocity that is added due to bombs exploding
-double bombStrength = 10.0; //How powerful the explosions are
-double bombSpeedDieout = 0.1; // How fast the speed added from bomb explosions disappears; 0.0-1.0
+double bombStrength = 10; //How powerful the explosions are
+double bombSpeedDieout = 0.7; // How fast the speed added from bomb explosions disappears; 0.0-1.0
 float lastKeypressTime=0;
 
 void keyboard(unsigned char key, int x, int y)

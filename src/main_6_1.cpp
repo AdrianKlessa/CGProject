@@ -678,13 +678,12 @@ void renewMine(int i, glm::vec3 shipPos) {
 
 	PxMaterial* mat = pxScene.physics->createMaterial(0.2, 0.01, 0.7);
 
-	int rand_value = rand() % 19;
-	boxes[i] = (std::make_tuple(pxScene.physics->createRigidDynamic(PxTransform(shipPos.x + (rand() % 40 + -20),
-		20,
-		shipPos.z + (rand() % 40 + -20))),
-		mat,
-		pxScene.physics->createShape(PxSphereGeometry(1),
-			*mat)));
+	boxes[i] = (std::make_tuple(pxScene.physics->createRigidDynamic(PxTransform(shipPos.x + (rand() % 60 + -30),
+																				50,
+																				shipPos.z + (rand() % 60 + -30))),
+								mat,
+								pxScene.physics->createShape(PxSphereGeometry(1),
+															*mat)));
 	//std::cout << shipPos.x << "  " << shipPos.z << "\n";
 
 	std::get<0>(boxes[i])->attachShape(*std::get<2>(boxes[i]));
@@ -718,7 +717,7 @@ void updateMines(glm::mat4 shipModelMatrix) {
 
 		if (distance <= explosionDistance) {
 			std::cout << "The player exploded \n";
-			explosionParticles.explode(currentBoxPos);
+			explosionParticles.explode(currentBoxPos + glm::vec3(0, -1, 0));
 			glm::vec3 vectorFromBombToShip = shipPos - currentBoxPos;
 			velFromBombs += glm::normalize(vectorFromBombToShip) * bombStrength;
 			pxScene.scene->removeActor(*std::get<0>(boxes[i]));
@@ -890,9 +889,6 @@ void renderScene()
 		lightDir = glm::normalize(glm::vec3(sin(lightAngle), -1.0f, cos(lightAngle)));
 	}
 
-
-
-
 	// physics settings
 	static double prevTime = time;
 	double dtime = time - prevTime;
@@ -970,16 +966,6 @@ void renderScene()
 	// update rocks and seaweed positions
 	updateFauna(shipModelMatrix);
 
-	// drawing hammer shark
-	//drawObjectColor(&hamSharkModel, glm::translate(glm::catmullRom(rockPositions[v1], rockPositions[v2], rockPositions[v3], rockPositions[v4], (time - time_int) ))
-	//								* glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) //init pos
-	//								* glm::rotate(glm::radians(-90.0f), glm::vec3(0, 0, 1)) //init pos
-	//								* glm::rotate(glm::radians(-36.0f * time), glm::vec3(0, 0, 1)) //follow forward
-	//								* glm::scale(glm::vec3(0.1f)), //make small
-	//								glm::vec3(0.5, 0.6, 0.3)); //color
-
-	//drawObjectTextureNM(&megalodonModel, glm::translate(glm::vec3(0, 0, 0)), textureMegalodon, normalMegalodon);
-
 	// draw terrain
 	drawObjectTextureNM(&terrainModel, glm::translate(glm::vec3(0, -40, 0)) * glm::rotate(glm::radians(-90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(2.f)),
 		textureTerrain,
@@ -990,7 +976,7 @@ void renderScene()
 	// draw mines
 	for (size_t i = 0; i < NUM_MINES; i++)
 	{
-		drawObjectTextureNM(&mineModel, boxModelMatrices[i] * glm::scale(glm::vec3(3)), textureMine, normalMine); // boxModelMatrix was updated in updateTransforms()
+		drawObjectTextureNM(&mineModel, boxModelMatrices[i] * glm::scale(glm::vec3(8)), textureMine, normalMine); // boxModelMatrix was updated in updateTransforms()
 	}
 
 	// update mine positions
@@ -1022,11 +1008,11 @@ void initPhysics() {
 	for (int i = 0; i < NUM_MINES; i++)
 	{
 		boxes.push_back(std::make_tuple(pxScene.physics->createRigidDynamic(PxTransform((2 * (i + 1)) * (rand() % 20 + -10),
-			20,
-			(2 * (i + 1)) * (rand() % 20 + -10))),
-			mat,
-			pxScene.physics->createShape(PxSphereGeometry(1),
-				*mat)));
+																						50,
+																						(2 * (i + 1)) * (rand() % 20 + -10))),
+										mat,
+										pxScene.physics->createShape(PxSphereGeometry(1),
+																	*mat)));
 
 		std::get<0>(boxes[i])->attachShape(*std::get<2>(boxes[i]));
 		std::get<2>(boxes[i])->release();

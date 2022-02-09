@@ -717,7 +717,7 @@ void updateMines(glm::mat4 shipModelMatrix) {
 
 		if (distance <= explosionDistance) {
 			std::cout << "The player exploded \n";
-			explosionParticles.explode(currentBoxPos);
+			explosionParticles.explode(currentBoxPos + glm::vec3(0, -1, 0));
 			glm::vec3 vectorFromBombToShip = shipPos - currentBoxPos;
 			velFromBombs += glm::normalize(vectorFromBombToShip) * bombStrength;
 			pxScene.scene->removeActor(*std::get<0>(boxes[i]));

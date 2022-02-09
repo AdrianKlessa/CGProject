@@ -106,7 +106,7 @@
 			velocity = glm::normalize(velocity);
 			velocity *= speed;
 			//glm::vec3 pos, glm::vec3 vel, float gravForce, float lifetime, float rotation, float scale
-			Particle newParticle = Particle(location, velocity, gravityStrength, drag, lifeLength, 0.0, 0.2);
+			Particle newParticle = Particle(location, velocity, gravityStrength, drag, lifeLength, 0.0, 0.5);
 			particleList.push_back(newParticle);
 		}
 
